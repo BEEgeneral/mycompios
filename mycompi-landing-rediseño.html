@@ -290,12 +290,12 @@
     <div class="cookie-inner">
       <p>Usamos cookies para mejorar tu experiencia. <a href="/mycompi-cookies.html">Politica de cookies</a></p>
       <div class="cookie-buttons">
-        <button class="cookie-btn cookie-decline" onclick=" CookieConsent == 'accepted') CookieConsent = 'declined'; document.getElementById('cookieBanner').classList.remove('show'); ">Rechazar</button>
-        <button class="cookie-btn cookie-accept" onclick=" CookieConsent = 'accepted'; document.getElementById('cookieBanner').classList.remove('show'; ">Aceptar</button>
+        <button class="cookie-btn cookie-decline" onclick="CookieConsent='declined';localStorage.setItem('cookie_consent',CookieConsent);document.getElementById('cookieBanner').classList.remove('show');">Rechazar</button>
+        <button class="cookie-btn cookie-accept" onclick="CookieConsent='accepted';localStorage.setItem('cookie_consent',CookieConsent);document.getElementById('cookieBanner').classList.remove('show');">Aceptar</button>
       </div>
     </div>
   </div>
-  <script>var CookieConsent = localStorage.getItem('cookie_consent') || ''; if (!CookieConsent) document.getElementById('cookieBanner').classList.add('show'); else if (CookieConsent === 'accepted') document.getElementById('cookieBanner').classList.remove('show'); </script>
+  <script>var CookieConsent = localStorage.getItem('cookie_consent') || ''; if (!CookieConsent) document.getElementById('cookieBanner').classList.add('show'); else document.getElementById('cookieBanner').classList.remove('show');</script>
 
   <!-- NAV -->
   <nav>
