@@ -1,0 +1,19 @@
+{
+  "functions": {
+    "auth-register": {
+      "file": "functions/auth-register.js",
+      "name": "Auth Register",
+      "description": "User registration endpoint"
+    },
+    "auth-login": {
+      "file": "functions/auth-login.js", 
+      "name": "Auth Login",
+      "description": "User login endpoint"
+    },
+    "checkout": {
+      "file": "functions/checkout.js",
+      "name": "Checkout",
+      "description": "Stripe checkout session creation"
+    }
+  }
+}
