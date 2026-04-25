@@ -155,6 +155,8 @@
     .faq-toggle.open .faq-icon::after { content: '−'; }
     .cookie-banner { display: none; }
     .cookie-banner.show { display: flex; }
+    .mobile-menu { display: none; }
+    .mobile-menu.open { display: flex; }
   </style>
 </head>
 <body class="bg-white text-gray-800 font-sans">
@@ -195,13 +197,32 @@
   <nav class="sticky top-0 z-40 bg-white shadow-sm">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
       <a href="#" class="text-xl font-bold text-primary">MyCompi</a>
+      
+      <!-- Desktop nav -->
       <div class="hidden md:flex items-center gap-6">
         <a href="#inicio" class="text-sm text-gray-600 hover:text-primary transition">Inicio</a>
         <a href="#características" class="text-sm text-gray-600 hover:text-primary transition">Caracteristicas</a>
         <a href="#precio" class="text-sm text-gray-600 hover:text-primary transition">Precio</a>
         <a href="#faq" class="text-sm text-gray-600 hover:text-primary transition">FAQ</a>
       </div>
-      <a href="https://guuimyx3.insforge.site?ref=landing" class="bg-accent text-white text-sm font-medium px-4 py-2 rounded hover:bg-emerald-600 transition">Empezar</a>
+      
+      <!-- Mobile hamburger -->
+      <button id="menuToggle" onclick="toggleMobileMenu()" class="md:hidden flex flex-col gap-1.5 p-2" aria-label="Menu">
+        <span class="w-6 h-0.5 bg-primary block"></span>
+        <span class="w-6 h-0.5 bg-primary block"></span>
+        <span class="w-6 h-0.5 bg-primary block"></span>
+      </button>
+      
+      <a href="https://guuimyx3.insforge.site?ref=landing" class="hidden md:inline-block bg-accent text-white text-sm font-medium px-4 py-2 rounded hover:bg-emerald-600 transition">Empezar</a>
+    </div>
+    
+    <!-- Mobile menu -->
+    <div id="mobileMenu" class="mobile-menu flex-col md:hidden bg-white border-t border-gray-100 px-4 pb-4 gap-3">
+      <a href="#inicio" onclick="closeMobileMenu()" class="text-sm text-gray-600 hover:text-primary py-2">Inicio</a>
+      <a href="#características" onclick="closeMobileMenu()" class="text-sm text-gray-600 hover:text-primary py-2">Caracteristicas</a>
+      <a href="#precio" onclick="closeMobileMenu()" class="text-sm text-gray-600 hover:text-primary py-2">Precio</a>
+      <a href="#faq" onclick="closeMobileMenu()" class="text-sm text-gray-600 hover:text-primary py-2">FAQ</a>
+      <a href="https://guuimyx3.insforge.site?ref=landing" class="bg-accent text-white text-sm font-medium px-4 py-2 rounded text-center mt-2">Empezar</a>
     </div>
   </nav>
 
@@ -414,6 +435,14 @@
         answer.classList.add('open');
         btn.classList.add('open');
       }
+    }
+    function toggleMobileMenu() {
+      var menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('open');
+    }
+    function closeMobileMenu() {
+      var menu = document.getElementById('mobileMenu');
+      menu.classList.remove('open');
     }
   </script>
 
