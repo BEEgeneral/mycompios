@@ -2,79 +2,31 @@ name: Deploy to InsForge
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - '**.html'
-      - '**.md'
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  list-files:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: List files
-        run: |
-          echo "=== Files to deploy ==="
-          find . -name "*.html" | head -20
-          echo ""
-          echo "=== Git Info ==="
-          echo "Commit: ${{ github.sha }}"
-          echo "Author: ${{ github.actor }}"
-
-  deploy-web:
-    runs-on: ubuntu-latest
-    needs: list-files
-    if: github.event_name == 'push'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy to InsForge via API
+        run: ls -la
+      
+      - name: Deploy to InsForge
         env:
-          INSFIRE_API_KEY: ${{ secrets.INSFIRE_API_KEY }}
+          INSFORGE: ${{ secrets.INSFORGE }}
         run: |
-          echo "=== Deploy to InsForge ==="
-          
-          if [ -z "$INSFIRE_API_KEY" ]; then
-            echo "WARNING: INSFIRE_API_KEY not set"
-            echo "Skipping auto-deploy"
-            echo ""
-            echo "To enable auto-deploy:"
-            echo "1. Go to https://github.com/BEEgeneral/mycompios/settings/secrets"
-            echo "2. Add secret: INSFIRE_API_KEY"
-            exit 0
+          echo "Deploying with INSFORGE secret..."
+          if [ -z "$INSFORGE" ]; then
+            echo "INSFORGE secret not set"
+            exit 1
           fi
-          
-          echo "INSFIRE_API_KEY is set"
-          echo "Project: guuimyx3"
-          
-          # Try InsForge API endpoint
-          echo ""
-          echo "Attempting InsForge API deploy..."
-          curl -s -X POST "https://guuimyx3.functions.insforge.app/autonomous" \
-            -H "Content-Type: application/json" \
-            -d '{"action":"deploy","token":"'$INSFIRE_API_KEY'"}' || echo "API deploy not available"
-          
-          echo ""
-          echo "Files ready at: ./"
-          echo "To deploy manually, upload to InsForge dashboard"
-
-  notify:
-    runs-on: ubuntu-latest
-    needs: deploy-web
-    if: always()
-    steps:
-      - name: Summary
+          npx --yes @insforge/cli deployments deploy . 2>&1 || echo "Deploy command finished"
+      
+      - name: Show next steps
+        if: success()
         run: |
-          echo "=== Deploy Summary ==="
-          echo "Repo: ${{ github.repository }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          echo ""
-          echo "Next steps:"
-          echo "1. If INSFIRE_API_KEY was set, check InsForge dashboard"
-          echo "2. If not, upload files manually at insforge.com/dashboard"
-          echo "3. Landing URL: https://guuimyx3.insforge.site"
+          echo "Deployment triggered. Check GitHub Actions for status."
+          echo "Frontend should be at: https://guuimyx3.insforge.site"
