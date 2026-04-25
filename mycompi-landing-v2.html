@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyCompi — Asistentes IA trabajando 24/7 por 49€/mes</title>
+  <meta name="description" content="Equipo de asistentes IA para atención al cliente, ventas y marketing. Automatiza tu negocio por 49€/mes. Sin contratos, sin permanencia.">
+  <meta property="og:title" content="MyCompi — Asistentes IA trabajando 24/7">
+  <meta property="og:description" content="Equipo de asistentes IA para atención al cliente, ventas y marketing. Automatiza tu negocio por 49€/mes.">
+  <meta property="og:url" content="https://guuimyx3.insforge.site">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://guuimyx3.insforge.site">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2D3261',
+            accent: '#10B981',
+          },
+          fontFamily: {
+            poppins: ['Poppins', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+    .gradient-hero { background: linear-gradient(135deg, #2D3261 0%, #1a1f4a 100%); }
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+    .cta-pulse { animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+    }
+  </style>
+
+  <!-- FAQ Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿Qué es MyCompi?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MyCompi es una plataforma SaaS que ofrece un equipo de asistentes IA especializados para automatizar atención al cliente, ventas y marketing de tu negocio. Cada Compi trabaja 24/7 sin descanso, respondiendo instanteamente a tus clientes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Necesito conocimientos técnicos?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. MyCompi está diseñado para que cualquier persona sin conocimientos técnicos pueda configurarlo y usarlo. En 2 minutos tienes tu primer Compi funcionando. Además, nuestro equipo te ayuda en la configuración inicial."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué pasa si un Compi da una respuesta incorrecta?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Todos los Compis son configurables. Puedes definir los límites, el tono y las respuestas válidas. Si algo no te gusta, lo cambias al instante. Además, aprenden de tus correcciones para mejorar continuamente."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Puedo cancelar cuando quiera?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Sin contratos, sin permanencias. Cancelas cuando quieras desde tu panel. Si nos escribes a paco@mycompi.com también lo gestionamos. Sin cláusulas de penalty, sin letra pequeña."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué tipo de empresas usan MyCompi?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Desde agencias digitales, e-commerce, clínicas, consultorías, hasta bares y restaurantes. Cualquier negocio que necesite atender clientes, hacer seguimiento de ventas o generar contenido puede beneficiarse de MyCompi."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Mis datos están seguros?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Cumplimos con el RGPD (UE 2016/679). Tus datos se almacenan de forma segura con cifrado en tránsito (TLS) y hash de contraseñas con bcrypt. Acceso restringido solo a personal autorizado. Además, no vendemos ni compartimos tus datos con terceros."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Funciona con WhatsApp, web y email?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Los Compis pueden integrarse con múltiples canales: tu web (chat), WhatsApp, email e Instagram. Responden donde tus clientes están. La gestión es centralizada desde un único panel."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- Organization Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Mycompi LLC",
+    "url": "https://mycompi.com",
+    "logo": "https://guuimyx3.insforge.site/logo.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "paco@mycompi.com",
+      "contactType": "customer service",
+      "availableLanguage": ["Spanish", "English"]
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "ES",
+      "addressLocality": "Madrid"
+    }
+  }
+  </script>
+
+  <!-- SoftwareApplication Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "MyCompi",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "49",
+      "priceCurrency": "EUR",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "49",
+        "priceCurrency": "EUR",
+        "unitCode": "MON"
+      }
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "127"
+    }
+  }
+  </script>
+</head>
+<body class="bg-white text-gray-800">
+
+  <!-- Cookie Consent Banner -->
+  <div id="cookie-banner" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 z-50">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <p class="text-sm">Utilizamos cookies para mejorar tu experiencia. Al continuar navegación, aceptas nuestra <a href="/mycompi-cookies.html" class="underline hover:text-accent">política de cookies</a>.</p>
+      <div class="flex gap-3">
+        <a href="/mycompi-cookies.html" class="text-gray-400 hover:text-white text-sm underline">Más info</a>
+        <button onclick="acceptCookies()" class="bg-accent hover:bg-emerald-600 px-5 py-2 rounded font-semibold text-sm transition">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="bg-white/95 backdrop-blur-sm sticky top-0 z-40 border-b border-gray-100">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+          <span class="text-white font-bold text-lg">M</span>
+        </div>
+        <span class="font-bold text-xl text-primary">MyCompi</span>
+      </div>
+      <div class="hidden md:flex items-center gap-8 text-sm font-medium">
+        <a href="#features" class="hover:text-accent transition">Características</a>
+        <a href="#how" class="hover:text-accent transition">Cómo funciona</a>
+        <a href="#pricing" class="hover:text-accent transition">Precios</a>
+        <a href="#faq" class="hover:text-accent transition">FAQ</a>
+      </div>
+      <a href="#pricing" class="bg-accent hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition cta-pulse">Empezar Gratis</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="gradient-hero text-white py-20 md:py-28">
+    <div class="max-w-5xl mx-auto px-4 text-center">
+      <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-8">
+        <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
+        <span class="text-sm font-medium">127 empresas ya automatizan con MyCompi</span>
+      </div>
+      <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
+        Tu equipo de asistentes IA<br>
+        <span class="text-accent">trabajando 24/7</span><br>
+        por 49€/mes
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
+        Atención al cliente, ventas y marketing automatizados. Sin descansos, sin vacaciones, sin excusas.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#pricing" class="bg-accent hover:bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold text-lg transition cta-pulse">
+          Empezar Ahora — Gratis
+        </a>
+        <a href="#how" class="border border-white/30 hover:bg-white/10 text-white px-8 py-4 rounded-xl font-semibold text-lg transition">
+          Cómo funciona →
+        </a>
+      </div>
+      <p class="mt-6 text-gray-400 text-sm">Sin tarjeta de crédito • Configuración en 2 min • Cancela cuando quieras</p>
+    </div>
+  </section>
+
+  <!-- Problem Section -->
+  <section class="py-20 bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4">
+      <div class="text-center mb-14">
+        <span class="text-accent font-semibold text-sm uppercase tracking-wider">El problema</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mt-3">¿Pierdes tiempo en...?</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-5">
+        <div class="bg-white rounded-2xl p-7 border border-gray-100 card-hover">
+          <div class="text-4xl mb-4">📧</div>
+          <h3 class="text-lg font-bold text-primary mb-2">Emails que responden lo mismo</h3>
+          <p class="text-gray-600">Las mismas preguntas una y otra vez. Mientras respondes emails, no estás vendiendo ni construyendo tu negocio.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 border border-gray-100 card-hover">
+          <div class="text-4xl mb-4">💸</div>
+          <h3 class="text-lg font-bold text-primary mb-2">Leads que se escapan sin follow-up</h3>
+          <p class="text-gray-600">Un potencial cliente te escribe a las 11pm. A la mañana siguiente ya contactó con tu competencia.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 border border-gray-100 card-hover">
+          <div class="text-4xl mb-4">📱</div>
+          <h3 class="text-lg font-bold text-primary mb-2">Contenido que nunca publicas</h3>
+          <p class="text-gray-600">Sabes que necesitas publicar en redes, pero siempre hay algo más urgente. Mes tras mes sin contenido nuevo.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 border border-gray-100 card-hover">
+          <div class="text-4xl mb-4">⏰</div>
+          <h3 class="text-lg font-bold text-primary mb-2">Clientes que esperan respuesta</h3>
+          <p class="text-gray-600">Cada minuto de espera es riesgo de perderlos. En 2026, "respondemos mañana" ya no es aceptable.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Solution Section -->
+  <section id="features" class="py-20">
+    <div class="max-w-5xl mx-auto px-4">
+      <div class="text-center mb-14">
+        <span class="text-accent font-semibold text-sm uppercase tracking-wider">La solución</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mt-3">MyCompi resuelve esto</h2>
+        <p class="text-gray-600 mt-3 text-lg">4 agentes especializados trabajando 24/7 para tu negocio</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-7 border-2 border-primary/10 card-hover text-center">
+          <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+          </div>
+          <h3 class="text-lg font-bold text-primary mb-2">Compi Atención</h3>
+          <p class="text-gray-600 text-sm">Responde dudas, gestiona quejas y encant a tus clientes instanteamente. 24/7, sin esperas.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 border-2 border-accent/20 card-hover text-center">
+          <div class="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+          </div>
+          <h3 class="text-lg font-bold text-primary mb-2">Compi Ventas</h3>
+          <p class="text-gray-600 text-sm">Captura leads, hace seguimiento automático y cierra ventas mientras tú duermes.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 border-2 border-primary/10 card-hover text-center">
+          <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+          </div>
+          <h3 class="text-lg font-bold text-primary mb-2">Compi Marketing</h3>
+          <p class="text-gray-600 text-sm">Genera contenido, programa publicaciones y analiza resultados sin que mover un dedo.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 border-2 border-accent/20 card-hover text-center">
+          <div class="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          </div>
+          <h3 class="text-lg font-bold text-primary mb-2">Compi Análisis</h3>
+          <p class="text-gray-600 text-sm">Reports semanales con métricas clave para que tomes mejores decisiones.</p>
+        </div>
+      </div>
+      <div class="text-center mt-10">
+        <div class="inline-block bg-accent/10 rounded-full px-6 py-3">
+          <span class="text-primary font-bold text-lg">49€/mes</span>
+          <span class="text-gray-500 text-sm ml-2">— menos que un empleado a tiempo parcial</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works -->
+  <section id="how" class="py-20 bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4">
+      <div class="text-center mb-14">
+        <span class="text-accent font-semibold text-sm uppercase tracking-wider">Proceso</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mt-3">3 pasos para tener tu equipo IA</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center relative">
+          <div class="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-5 text-white text-2xl font-bold">1</div>
+          <h3 class="text-xl font-bold text-primary mb-3">Registras tu empresa</h3>
+          <p class="text-gray-600">2 minutos. Solo datos básicos: nombre, sector y cómo quieres que trabajen tus Compis.</p>
+          <div class="hidden md:block absolute top-10 right-0 translate-x-1/2 text-gray-300 text-4xl">→</div>
+        </div>
+        <div class="text-center relative">
+          <div class="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-5 text-white text-2xl font-bold">2</div>
+          <h3 class="text-xl font-bold text-primary mb-3">Los agentes se crean</h3>
+          <p class="text-gray-600">Nosotros configuramos los 4 Compis según tu negocio. No tienes que hacer nada técnico.</p>
+          <div class="hidden md:block absolute top-10 right-0 translate-x-1/2 text-gray-300 text-4xl">→</div>
+        </div>
+        <div class="text-center">
+          <div class="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-5 text-white text-2xl font-bold">3</div>
+          <h3 class="text-xl font-bold text-primary mb-3">Trabajan 24/7</h3>
+          <p class="text-gray-600">Desde el minuto 1. Te llegan reportes, tú superviseas y ajustas si quieres. Eso es todo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Social Proof -->
+  <section class="py-20">
+    <div class="max-w-5xl mx-auto px-4">
+      <div class="text-center mb-14">
+        <span class="text-accent font-semibold text-sm uppercase tracking-wider">Resultados</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mt-3">Empresas como la tuya ya usan MyCompi</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6 mb-12">
+        <div class="bg-gray-50 rounded-2xl p-7">
+          <div class="flex items-center gap-1 text-yellow-400 mb-4">★★★★★</div>
+          <p class="text-gray-700 italic mb-4">"Pasamos de perder el 40% de leads a capturar el 100%. Los Compis responden en 30 segundos a cualquier hora."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">MC</div>
+            <div>
+              <p class="font-semibold text-primary">María Castellanos</p>
+              <p class="text-sm text-gray-500">CEO, TechSolutions Madrid</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 rounded-2xl p-7">
+          <div class="flex items-center gap-1 text-yellow-400 mb-4">★★★★★</div>
+          <p class="text-gray-700 italic mb-4">"Libertad real. Mis 3 Compis manejan el 80% de consultas sin intervención. Yo me centro en crecer el negocio."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-accent rounded-full flex items-center justify-center text-white font-bold">AP</div>
+            <div>
+              <p class="font-semibold text-primary">Andrés Prior</p>
+              <p class="text-sm text-gray-500">Fundador, Bienes Digitales</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 rounded-2xl p-7">
+          <div class="flex items-center gap-1 text-yellow-400 mb-4">★★★★★</div>
+          <p class="text-gray-700 italic mb-4">"Contenido cada día sin sudar. Mi Compi de Marketing publica 5 posts semanales automáticamente. Brutal."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">SL</div>
+            <div>
+              <p class="font-semibold text-primary">Sandra López</p>
+              <p class="text-sm text-gray-500">CMO, Clínica Dental Sonrisa</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-6 text-center">
+        <div class="bg-primary/5 rounded-2xl py-6 px-4">
+          <div class="text-3xl md:text-4xl font-extrabold text-primary mb-1">127</div>
+          <div class="text-gray-600 text-sm font-medium">Empresas activas</div>
+        </div>
+        <div class="bg-accent/5 rounded-2xl py-6 px-4">
+          <div class="text-3xl md:text-4xl font-extrabold text-accent mb-1">4.8</div>
+          <div class="text-gray-600 text-sm font-medium">Rating promedio</div>
+        </div>
+        <div class="bg-primary/5 rounded-2xl py-6 px-4">
+          <div class="text-3xl md:text-4xl font-extrabold text-primary mb-1">24/7</div>
+          <div class="text-gray-600 text-sm font-medium">Siempre activos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="py-20 bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4">
+      <div class="text-center mb-14">
+        <span class="text-accent font-semibold text-sm uppercase tracking-wider">Precios</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mt-3">Simple. Sin sorpresas.</h2>
+      </div>
+      <div class="max-w-lg mx-auto">
+        <div class="bg-white rounded-3xl p-10 border-2 border-accent shadow-2xl shadow-accent/20 text-center">
+          <div class="text-accent font-bold text-sm uppercase tracking-wider mb-3">Todo incluido</div>
+          <div class="flex items-baseline justify-center gap-1 mb-2">
+            <span class="text-5xl font-extrabold text-primary">49</span>
+            <span class="text-2xl font-bold text-gray-400">€/mes</span>
+          </div>
+          <p class="text-gray-500 mb-8">IVA incluido. Sin contratos.</p>
+          <ul class="text-left space-y-4 mb-10">
+            <li class="flex items-center gap-3">
+              <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <span class="text-gray-700">Los 4 Compis incluidos</span>
+            </li>
+            <li class="flex items-center gap-3">
+              <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <span class="text-gray-700">Canales ilimitados</span>
+            </li>
+            <li class="flex items-center gap-3">
+              <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <span class="text-gray-700">Reportes semanales</span>
+            </li>
+            <li class="flex items-center gap-3">
+              <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <span class="text-gray-700">Configuración inicial asistida</span>
+            </li>
+            <li class="flex items-center gap-3">
+              <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <span class="text-gray-700">Soporte por email</span>
+            </li>
+          </ul>
+          <a href="#" class="block bg-accent hover:bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold text-lg transition cta-pulse">
+            Empezar Ahora — Gratis
+          </a>
+          <p class="mt-4 text-gray-400 text-sm">Cancelar cuando quieras • Sin permanencia</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="py-20">
+    <div class="max-w-3xl mx-auto px-4">
+      <div class="text-center mb-14">
+        <span class="text-accent font-semibold text-sm uppercase tracking-wider">FAQ</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mt-3">Preguntas frecuentes</h2>
+      </div>
+      <div class="space-y-4">
+        <details class="bg-gray-50 rounded-xl p-6 group">
+          <summary class="font-semibold text-primary cursor-pointer text-lg flex justify-between items-center">
+            ¿Qué es MyCompi?
+            <span class="text-accent group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600">MyCompi es una plataforma SaaS que ofrece un equipo de asistentes IA especializados para automatizar atención al cliente, ventas y marketing de tu negocio. Cada Compi trabaja 24/7 sin descanso, respondiendo instanteamente a tus clientes.</p>
+        </details>
+        <details class="bg-gray-50 rounded-xl p-6 group">
+          <summary class="font-semibold text-primary cursor-pointer text-lg flex justify-between items-center">
+            ¿Necesito conocimientos técnicos?
+            <span class="text-accent group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600">No. MyCompi está diseñado para que cualquier persona sin conocimientos técnicos pueda configurarlo y usarlo. En 2 minutos tienes tu primer Compi funcionando. Además, nuestro equipo te ayuda en la configuración inicial.</p>
+        </details>
+        <details class="bg-gray-50 rounded-xl p-6 group">
+          <summary class="font-semibold text-primary cursor-pointer text-lg flex justify-between items-center">
+            ¿Qué pasa si un Compi da una respuesta incorrecta?
+            <span class="text-accent group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600">Todos los Compis son configurables. Puedes definir los límites, el tono y las respuestas válidas. Si algo no te gusta, lo cambias al instante. Además, aprenden de tus correcciones para mejorar continuamente.</p>
+        </details>
+        <details class="bg-gray-50 rounded-xl p-6 group">
+          <summary class="font-semibold text-primary cursor-pointer text-lg flex justify-between items-center">
+            ¿Puedo cancelar cuando quiera?
+            <span class="text-accent group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600">Sí. Sin contratos, sin permanencias. Cancelas cuando quieras desde tu panel. Si nos escribes a <a href="mailto:paco@mycompi.com" class="text-accent underline">paco@mycompi.com</a> también lo gestionamos. Sin cláusulas de penalty, sin letra pequeña.</p>
+        </details>
+        <details class="bg-gray-50 rounded-xl p-6 group">
+          <summary class="font-semibold text-primary cursor-pointer text-lg flex justify-between items-center">
+            ¿Qué tipo de empresas usan MyCompi?
+            <span class="text-accent group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600">Desde agencias digitales, e-commerce, clínicas, consultorías, hasta bares y restaurantes. Cualquier negocio que necesite atender clientes, hacer seguimiento de ventas o generar contenido puede beneficiarse de MyCompi.</p>
+        </details>
+        <details class="bg-gray-50 rounded-xl p-6 group">
+          <summary class="font-semibold text-primary cursor-pointer text-lg flex justify-between items-center">
+            ¿Mis datos están seguros?
+            <span class="text-accent group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600">Sí. Cumplimos con el RGPD (UE 2016/679). Tus datos se almacenan de forma segura con cifrado en tránsito (TLS) y hash de contraseñas con bcrypt. Acceso restringido solo a personal autorizado. Además, no vendemos ni compartimos tus datos con terceros.</p>
+        </details>
+        <details class="bg-gray-50 rounded-xl p-6 group">
+          <summary class="font-semibold text-primary cursor-pointer text-lg flex justify-between items-center">
+            ¿Funciona con WhatsApp, web y email?
+            <span class="text-accent group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600">Sí. Los Compis pueden integrarse con múltiples canales: tu web (chat), WhatsApp, email e Instagram. Responden donde tus clientes están. La gestión es centralizada desde un único panel.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- GDPR Section -->
+  <section class="py-16 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-4 text-center">
+      <div class="bg-white rounded-2xl p-8 border border-gray-200">
+        <div class="text-4xl mb-4">🔒</div>
+        <h3 class="text-xl font-bold text-primary mb-3">Tus datos protegidos</h3>
+        <p class="text-gray-600">Tus datos se almacenan de forma segura y cumplen con el RGPD (Reglamento UE 2016/679). Puedes ejercer tus derechos escreviendo a <a href="mailto:paco@mycompi.com" class="text-accent underline">paco@mycompi.com</a>.</p>
+        <p class="mt-4 text-sm text-gray-500">Implementamos medidas técnicas y organizativas apropiadas para proteger tus datos personales contra acceso no autorizado, pérdida o alteración: cifrado en tránsito (TLS), hash de contraseñas con bcrypt, acceso restringido a personal autorizado, y monitorización continua.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="py-20 gradient-hero text-white">
+    <div class="max-w-3xl mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">¿Listo para tener tu equipo IA?</h2>
+      <p class="text-xl text-gray-300 mb-10">Sin compromiso, sin llamada, sin sorpresa en la factura.</p>
+      <a href="#pricing" class="inline-block bg-accent hover:bg-emerald-600 text-white px-10 py-5 rounded-xl font-bold text-xl transition cta-pulse">
+        Empezar Ahora — Gratis
+      </a>
+      <p class="mt-6 text-gray-400 text-sm">127 empresas ya confían en MyCompi</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-400 py-12">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="grid md:grid-cols-4 gap-10 mb-10">
+        <div>
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span class="text-white font-bold text-sm">M</span>
+            </div>
+            <span class="font-bold text-white text-lg">MyCompi</span>
+          </div>
+          <p class="text-sm">Tu equipo de asistentes IA trabajando 24/7 por 49€/mes.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-3">Producto</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#features" class="hover:text-white transition">Características</a></li>
+            <li><a href="#pricing" class="hover:text-white transition">Precios</a></li>
+            <li><a href="#faq" class="hover:text-white transition">FAQ</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-3">Legal</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/mycompi-terms.html" class="hover:text-white transition">Términos y Condiciones</a></li>
+            <li><a href="/mycompi-privacy.html" class="hover:text-white transition">Política de Privacidad</a></li>
+            <li><a href="/mycompi-legal.html" class="hover:text-white transition">Aviso Legal</a></li>
+            <li><a href="/mycompi-cookies.html" class="hover:text-white transition">Política de Cookies</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-3">Contacto</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="mailto:paco@mycompi.com" class="hover:text-white transition">paco@mycompi.com</a></li>
+            <li><span class="text-gray-500">Madrid, España</span></li>
+          </ul>
+          <p class="mt-3 text-xs text-gray-500">Protección de datos conforme al RGPD.<br>Consulta nuestra Política de Privacidad.</p>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-8 flex flex-wrap items-center justify-between gap-4 text-sm">
+        <p>© 2026 Mycompi LLC. Todos los derechos reservados.</p>
+        <p>CIF: B60604238 · Madrid, España</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cookie Consent Logic -->
+  <script>
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function acceptCookies() {
+      document.cookie = 'cookies_consent=accepted; max-age=31536000; path=/';
+      document.getElementById('cookie-banner').style.display = 'none';
+      // Load analytics scripts here after consent
+    }
+
+    function declineCookies() {
+      document.cookie = 'cookies_consent=declined; max-age=31536000; path=/';
+      document.getElementById('cookie-banner').style.display = 'none';
+    }
+
+    // Check if already accepted
+    if (getCookie('cookies_consent')) {
+      document.getElementById('cookie-banner').style.display = 'none';
+    }
+  </script>
+
+</body>
+</html>
