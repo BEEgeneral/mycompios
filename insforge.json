@@ -14,6 +14,11 @@
       "file": "functions/checkout.js",
       "name": "Checkout",
       "description": "Stripe checkout session creation"
+    },
+    "onboard": {
+      "file": "functions/onboard.js",
+      "name": "Onboard",
+      "description": "Handle new user onboarding - analyze website or process business idea"
     }
   }
 }
