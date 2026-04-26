@@ -19,6 +19,16 @@
       "file": "functions/onboard.js",
       "name": "Onboard",
       "description": "Handle new user onboarding - analyze website or process business idea"
+    },
+    "onboarding-complete": {
+      "file": "functions/onboarding-complete.js",
+      "name": "Onboarding Complete",
+      "description": "Complete onboarding flow - creates client, sends welcome email, creates initial tasks"
+    },
+    "analyze-website": {
+      "file": "functions/analyze-website.js",
+      "name": "Analyze Website",
+      "description": "Analyze a website URL and extract sector, keywords, competitors"
     }
   }
 }
