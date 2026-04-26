@@ -1,18 +1,5 @@
-// INSERT WRAPPER - Bypass PostgREST for new tables
-// These tables aren't exposed via /rest/* so we insert via SQL RPC functions
-
-const API_BASE = 'https://guuimyx3.eu-central.insforge.app'
-const ANON_KEY = 'ik_448e7387f3c4b7f16764bb092b4a84b2'
-
-async function rpcInsert(functionName, params) {
-  const res = await fetch(`${API_BASE}/rest/rpc/${functionName}`, {
-    method: 'POST',
-    headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify(params)
-  })
-  if (!res.ok) throw new Error(`${functionName}: ${res.status}`)
-  return await res.json()
-}
+// INSERT WRAPPER v2 - Uses ctx.supabase for all writes
+// ctx.supabase has InsForge auth context → can write to ALL tables
 
 export default async function handler(req, ctx) {
   const headers = {
@@ -26,74 +13,129 @@ export default async function handler(req, ctx) {
   }
 
   try {
+    const supabase = ctx.supabase || await ctx.database()
     const { action, ...params } = await req.json()
+    const now = new Date().toISOString()
 
     let result
     switch (action) {
-      case 'proactive_task':
-        result = await rpcInsert('insert_proactive_task', {
-          p_company_id: params.company_id,
-          p_task_type: params.task_type || 'proactive',
-          p_description: params.description,
-          p_agent_id: params.agent_id || 'pelayo',
-          p_priority: params.priority || 'medium'
-        })
+      case 'proactive_task': {
+        const { company_id, task_type, description, agent_id, priority } = params
+        const { data, error } = await supabase
+          .from('proactive_tasks')
+          .insert({
+            company_id,
+            task_type: task_type || 'proactive',
+            description,
+            agent_id: agent_id || 'pelayo',
+            priority: priority || 'medium',
+            status: 'pending',
+            created_at: now
+          })
+          .select()
+          .single()
+        result = error ? { error: error.message } : data
         break
+      }
 
-      case 'agent_report':
-        result = await rpcInsert('insert_agent_report', {
-          p_company_id: params.company_id,
-          p_agent_id: params.agent_id,
-          p_task_id: params.task_id || 0,
-          p_report_type: params.report_type,
-          p_content: params.content || {}
-        })
+      case 'agent_report': {
+        const { company_id, agent_id, task_id, report_type, content } = params
+        const { data, error } = await supabase
+          .from('agent_reports')
+          .insert({
+            company_id,
+            agent_id,
+            task_id: task_id || 0,
+            report_type,
+            content: content || {},
+            created_at: now
+          })
+          .select()
+          .single()
+        result = error ? { error: error.message } : data
         break
+      }
 
-      case 'learning_log':
-        result = await rpcInsert('insert_learning_log', {
-          p_company_id: params.company_id,
-          p_event_type: params.event_type,
-          p_content: params.content || {},
-          p_tags: params.tags || []
-        })
+      case 'learning_log': {
+        const { company_id, event_type, content, tags } = params
+        const { data, error } = await supabase
+          .from('learning_logs')
+          .insert({
+            company_id,
+            event_type,
+            content: typeof content === 'string' ? { text: content } : content,
+            tags: tags || [],
+            created_at: now
+          })
+          .select()
+          .single()
+        result = error ? { error: error.message } : data
         break
+      }
 
-      case 'daily_brief':
-        result = await rpcInsert('insert_daily_brief', {
-          p_company_id: params.company_id,
-          p_agent_id: params.agent_id,
-          p_content: params.content || {},
-          p_report_type: params.report_type || 'daily_brief'
-        })
+      case 'daily_brief': {
+        const { company_id, agent_id, content, report_type } = params
+        const { data, error } = await supabase
+          .from('daily_briefs')
+          .insert({
+            company_id,
+            agent_id,
+            content: content || {},
+            report_type: report_type || 'daily_brief',
+            created_at: now
+          })
+          .select()
+          .single()
+        result = error ? { error: error.message } : data
         break
+      }
 
-      case 'onboarding_data':
-        result = await rpcInsert('insert_onboarding_data', {
-          p_company_id: params.company_id,
-          p_empresa_nombre: params.empresa_nombre,
-          p_empresa_sector: params.empresa_sector,
-          p_empresa_web: params.empresa_web,
-          p_empresa_empleados: params.empresa_empleados,
-          p_objetivos: params.objetivos || [],
-          p_objetivos_detalles: params.objetivos_detalles || ''
-        })
+      case 'email_sequence_init': {
+        const { company_id } = params
+        const { data, error } = await supabase
+          .from('email_sequence_status')
+          .insert({
+            company_id,
+            d1_sent: false,
+            d3_sent: false,
+            d5_sent: false,
+            d7_sent: false,
+            nps_sent: false,
+            nps_answered: false,
+            created_at: now,
+            updated_at: now
+          })
+          .select()
+          .single()
+        result = error ? { error: error.message } : data
         break
+      }
 
-      case 'email_sequence_init':
-        result = await rpcInsert('init_email_sequence_status', {
-          p_company_id: params.company_id
-        })
+      case 'trial_status': {
+        const { company_id, expires_at } = params
+        const { data, error } = await supabase
+          .from('trial_status')
+          .insert({
+            company_id,
+            started_at: now,
+            expires_at: expires_at || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            converted: false,
+            created_at: now
+          })
+          .select()
+          .single()
+        result = error ? { error: error.message } : data
         break
+      }
 
       default:
         return new Response(JSON.stringify({
           error: 'Invalid action',
-          available: ['proactive_task', 'agent_report', 'learning_log', 'daily_brief', 'onboarding_data', 'email_sequence_init']
+          available: ['proactive_task', 'agent_report', 'learning_log', 'daily_brief', 'email_sequence_init', 'trial_status']
         }), { status: 400, headers })
     }
 
-    return new Response(JSON.stringify({ success: true, result }), { headers })
+    return new Response(JSON.stringify({ success: !result.error, result }), { headers })
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers })
