@@ -1,33 +1,65 @@
-// AGENT STORAGE v4 - Documentation only (waiting for autonomous 'store' action)
-// External REST API (/rest/*) is blocked in InsForge
-// Only edge functions with ctx.supabase can write to custom tables
-//
-// SOLUTION: The autonomous L6 agent will handle agent data storage
-// when it has a 'store' action implemented.
-// 
-// For now: Use client_tasks (template table) for all agent data storage
-// task_id < 0 marks agent data records (-1: learnings, -2: reports, -3: briefs, -4: tasks)
-
-const CONFIG = {
-  API_BASE: 'https://guuimyx3.eu-central.insforge.app',
-  ANON_KEY: 'ik_448e7387f3c4b7f16764bb092b4a84b2',
-  FUNCTIONS_URL: 'https://guuimyx3.functions.insforge.app',
-}
-
-// IMPORTANT: PostgREST access is BLOCKED externally.
-// All writes MUST go through ctx.supabase inside InsForge edge functions.
+// AGENT STORAGE v5 - Routes to autonomous.store action
+// autonomous agent stores to: globalThis.l6State.memory + OpenViking
+// This is the unified agent data storage for MyCompi
 
 export default async function handler(req, ctx) {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers })
 
-  return new Response(JSON.stringify({
-    success: true,
-    status: 'DOCUMENTATION',
-    message: 'Agent storage routes through autonomous L6 agent',
-    note: 'InsForge blocks external REST access. All writes go through ctx.supabase.',
-    solution: 'The autonomous agent (L6) handles all data storage internally.',
-    actions: ['learn', 'agent_report', 'daily_brief', 'proactive_task', 'get_agent_data'],
-    routing: 'These actions will be implemented when autonomous exposes a store action'
-  }), { headers })
+  try {
+    const { action, company_id, data_type, data_content, metadata } = await req.json()
+
+    if (!company_id) return new Response(JSON.stringify({ error: 'company_id required' }), { status: 400, headers })
+
+    switch (action) {
+      case 'learn':
+      case 'agent_report':
+      case 'daily_brief':
+      case 'proactive_task': {
+        const res = await fetch('https://guuimyx3.functions.insforge.app/autonomous', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'store',
+            companyId: company_id,
+            data_type: action,
+            data_content: data_content || metadata?.content || '',
+            metadata: metadata || {}
+          })
+        })
+        const result = await res.json()
+        return new Response(JSON.stringify({
+          success: !result.error,
+          routed_via: 'autonomous.store',
+          result
+        }), { headers })
+      }
+
+      case 'get_agent_data': {
+        const res = await fetch('https://guuimyx3.functions.insforge.app/autonomous', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'status',
+            companyId: company_id
+          })
+        })
+        const result = await res.json()
+        return new Response(JSON.stringify({
+          success: !result.error,
+          routed_via: 'autonomous.status',
+          memory: result.memory,
+          learning: result.learning
+        }), { headers })
+      }
+
+      default:
+        return new Response(JSON.stringify({
+          error: 'Invalid action',
+          available: ['learn', 'agent_report', 'daily_brief', 'proactive_task', 'get_agent_data']
+        }), { status: 400, headers })
+    }
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers })
+  }
 }
