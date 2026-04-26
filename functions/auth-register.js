@@ -146,26 +146,9 @@ export default async function handler(req, ctx) {
       console.log('Session insert warning:', e.message);
     }
 
-    // POLSIA-STYLE: Initialize credits for trial
-    let creditsInitialized = false;
-    try {
-      const creditRes = await fetch('https://guuimyx3.functions.insforge.app/credit-init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId: companyId,
-          plan: 'trial',
-          email: email
-        })
-      });
-      const creditData = await creditRes.json();
-      creditsInitialized = creditData.success;
-      console.log('[AUTH-REGISTER] Credits init:', creditsInitialized, 'total:', creditData.total_credits);
-    } catch (e) {
-      console.log('[AUTH-REGISTER] Credit init error:', e.message);
-    }
+    // CREDIT SYSTEM REMOVED — 2026-04-26
 
-    // POLSIA-STYLE: Initialize agents immediately
+    // Initialize agents immediately
     let agentsInitialized = false;
     try {
       const autonomousRes = await fetch('https://guuimyx3.functions.insforge.app/autonomous', {
@@ -235,8 +218,6 @@ export default async function handler(req, ctx) {
         companyId: companyId,
         token,
         trial_expires_at: trialExpiresAt,
-        total_credits: 100,
-        creditsInitialized,
         agentsInitialized,
         tasksInitialized,
         emailSent,
