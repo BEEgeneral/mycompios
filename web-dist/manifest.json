@@ -1,0 +1,28 @@
+{
+  "name": "MyCompi — Asistentes virtuales IA",
+  "short_name": "MyCompi",
+  "description": "Equipo de asistentes virtuales IA para empresas: atención al cliente, ventas, marketing y desarrollo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2D3261",
+  "theme_color": "#2D3261",
+  "scope": "/",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "es",
+  "dir": "ltr"
+}

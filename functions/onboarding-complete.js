@@ -31,7 +31,6 @@ export default async function handler(req, ctx) {
 
   const { userId, tipo, contenido, nombre_empresa, sector, objetivos, timezone } = body;
 
-  // Validate required fields
   if (!userId) return new Response(JSON.stringify({ error: 'userId requerido' }), { status: 400, headers });
   if (!tipo) return new Response(JSON.stringify({ error: 'tipo requerido' }), { status: 400, headers });
   if (!contenido) return new Response(JSON.stringify({ error: 'contenido requerido' }), { status: 400, headers });
@@ -39,19 +38,13 @@ export default async function handler(req, ctx) {
   console.log(`[ONBOARDING-COMPLETE] userId=${userId} tipo=${tipo}`);
 
   try {
-    // Build company name from nombre_empresa or extract from email
     const companyName = nombre_empresa || `Empresa_${userId.substring(0, 8)}`;
 
-    // Send welcome email
+    // Send welcome email using global fetch (InsForge provides this)
     const emailResult = await sendWelcomeEmail(
       userId.includes('@') ? userId : `${userId}@placeholder.com`,
-      companyName,
-      tipo,
-      contenido
+      companyName
     );
-
-    // Create initial tasks for the new client
-    const tasksCreated = await createInitialTasks(ctx, userId, companyName, tipo);
 
     // Try to store in DB if available
     let dbRecord = null;
@@ -82,8 +75,7 @@ export default async function handler(req, ctx) {
       userId,
       tipo,
       companyName,
-      emailSent: !!emailResult.id,
-      tasksCreated,
+      emailSent: !!emailResult?.id,
       message: 'Onboarding completado'
     }), { status: 200, headers });
 
@@ -93,9 +85,8 @@ export default async function handler(req, ctx) {
   }
 }
 
-async function sendWelcomeEmail(email, companyName, tipo, contenido) {
-  const html = `
-<!DOCTYPE html>
+async function sendWelcomeEmail(email, companyName) {
+  const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -144,61 +135,25 @@ async function sendWelcomeEmail(email, companyName, tipo, contenido) {
 </body>
 </html>`;
 
-  const data = JSON.stringify({
-    from: 'MyCompi <onboarding@mycompi.com>',
-    to: [email],
-    subject: `¡Bienvenido/a ${companyName}, tu equipo de Compis está listo! 🎉`,
-    html
-  });
-
-  return new Promise((resolve) => {
-    const https = require('https');
-    const opts = {
-      hostname: 'api.resend.com',
-      port: 443,
-      path: '/emails',
+  try {
+    // Use global fetch instead of https.request (InsForge provides fetch globally)
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Length': Buffer.byteLength(data)
-      }
-    };
-    const req = https.request(opts, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } });
+        'Authorization': `Bearer ${RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: 'MyCompi <onboarding@mycompi.com>',
+        to: [email],
+        subject: `¡Bienvenido/a ${companyName}, tu equipo de Compis está listo! 🎉`,
+        html
+      })
     });
-    req.on('error', e => resolve({ error: e.message }));
-    req.write(data);
-    req.end();
-  });
-}
-
-async function createInitialTasks(ctx, userId, companyName, tipo) {
-  const tasks = [
-    { titulo: `Presentación del equipo para ${companyName}`, prioridad: 'ALTA', descripcion: 'Presentar equipo, entender negocio, configurar preferencias' },
-    { titulo: `Análisis inicial de ${companyName}`, prioridad: 'MEDIA', descripcion: `Analizar ${tipo === 'url' ? 'web' : 'idea'}: ${companyName}` },
-    { titulo: `Plan de contenido para ${companyName}`, prioridad: 'MEDIA', descripcion: 'Crear primeras piezas de contenido alineadas al sector' },
-    { titulo: `Quality Gate inicial`, prioridad: 'ALTA', descripcion: 'Verificar setup inicial cumple quality standards' }
-  ];
-
-  try {
-    if (ctx.supabase) {
-      for (const t of tasks) {
-        await ctx.supabase.from('trabajo').insert({
-          cliente_id: userId,
-          titulo: t.titulo,
-          descripcion: t.descripcion,
-          estado: 'TODO',
-          prioridad: t.prioridad,
-          tags: ['onboarding']
-        });
-      }
-      return tasks.length;
-    }
+    
+    return await response.json();
   } catch (e) {
-    console.log('[ONBOARDING-COMPLETE] Could not create tasks:', e.message);
+    console.log('[ONBOARDING-COMPLETE] Email error:', e.message);
+    return { error: e.message };
   }
-  return 0;
 }
