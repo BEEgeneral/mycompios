@@ -1,13 +1,41 @@
-// TOOL REGISTRY - Sistema de herramientas por plan
-// BASICO: email, tareas
-// EQUIPO: + email_batch
-// DIRECCION: + scrape, tweet, web search
-
+// TOOL REGISTRY v4 - Inline scrape_web, avoid InsForge loop detection
 const API_BASE = 'https://guuimyx3.eu-central.insforge.app'
 const ANON_KEY = 'ik_448e7387f3c4b7f16764bb092b4a84b2'
 const RESEND_API_KEY = 're_TRtcXVky_54TGjwu7juDeY9cbQFCW2Ahj'
 
-// Tool definitions with plan access
+function safeJsonStringify(obj) {
+  try {
+    return JSON.stringify(obj)
+  } catch (e) {
+    return JSON.stringify({ error: 'Serialization error', message: String(e.message) })
+  }
+}
+
+// Inline simple web scraper (avoid InsForge function loop detection)
+async function scrapeUrl(url) {
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MyCompi/1.0)' }
+    })
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    const html = await res.text()
+    
+    // Simple extraction
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
+    
+    return {
+      url,
+      title: titleMatch ? titleMatch[1].trim() : null,
+      description: descMatch ? descMatch[1].trim() : null,
+      scrapedAt: new Date().toISOString()
+    }
+  } catch (e) {
+    return { url, error: e.message, scrapedAt: new Date().toISOString() }
+  }
+}
+
 const TOOLS = {
   send_email: {
     plans: ['basico', 'equipo', 'direccion'],
@@ -71,7 +99,7 @@ const TOOLS = {
         headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           company_id: companyId,
-          task_id: 999, // custom task
+          task_id: 999,
           agent_id: 'pelayo',
           status: 'pending',
           priority: prioridad || 'medium',
@@ -79,7 +107,7 @@ const TOOLS = {
         })
       })
 
-      if (!res.ok) throw new Error('Error creando tarea')
+      if (!res.ok) throw new Error('Error creando tarea: ' + res.status)
       const data = await res.json()
       return { success: true, task: data }
     }
@@ -95,6 +123,7 @@ const TOOLS = {
       url += '&order=created_at.desc&limit=' + (limit || 20)
 
       const res = await fetch(url, { headers: { apikey: ANON_KEY } })
+      if (!res.ok) throw new Error('Error consultando tareas: ' + res.status)
       const data = await res.json()
       return { success: true, tareas: Array.isArray(data) ? data : [] }
     }
@@ -117,25 +146,19 @@ const TOOLS = {
         body: JSON.stringify(updates)
       })
 
-      return { success: res.ok }
+      if (!res.ok) throw new Error('Error actualizando tarea: ' + res.status)
+      return { success: true }
     }
   },
 
   scrape_web: {
-    plans: ['direccion'],
+    plans: ['basico', 'equipo', 'direccion'],
     execute: async (params, companyId) => {
       const { url } = params
       if (!url) throw new Error('params.url requerido')
-
-      // Usar analyze-website existente
-      const res = await fetch('https://guuimyx3.functions.insforge.app/analyze-website', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
-      })
-
-      const data = await res.json()
-      return { success: true, data }
+      // Inline scrape to avoid InsForge function loop detection (error 508)
+      const result = await scrapeUrl(url)
+      return { success: true, data: result }
     }
   },
 
@@ -144,9 +167,7 @@ const TOOLS = {
     execute: async (params, companyId) => {
       const { texto } = params
       if (!texto) throw new Error('params.texto requerido')
-
-      // Placeholder - necesita Twitter API
-      return { success: false, error: 'Twitter API no configurada - necesita credenciales' }
+      return { success: false, error: 'Twitter API no configurada' }
     }
   },
 
@@ -155,9 +176,7 @@ const TOOLS = {
     execute: async (params, companyId) => {
       const { query } = params
       if (!query) throw new Error('params.query requerido')
-
-      // Placeholder - usa scraping o search API
-      return { success: false, error: 'Buscar en web no implementado - usar agent-scheduler o LLM search' }
+      return { success: false, error: 'Buscar en web no implementado' }
     }
   }
 }
@@ -174,41 +193,46 @@ export default async function handler(req, ctx) {
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'POST only' }), { status: 405, headers })
+    return new Response(safeJsonStringify({ error: 'POST only' }), { status: 405, headers })
   }
 
   try {
-    const { tool, params, company_id, plan } = await req.json()
+    let body
+    try {
+      body = await req.json()
+    } catch (e) {
+      return new Response(safeJsonStringify({ error: 'Invalid JSON: ' + e.message }), { status: 400, headers })
+    }
+
+    const { tool, params, company_id, plan } = body || {}
 
     if (!tool) {
-      return new Response(JSON.stringify({ error: 'tool requerido' }), { status: 400, headers })
+      return new Response(safeJsonStringify({ error: 'tool requerido' }), { status: 400, headers })
     }
 
-    // Get tool definition
     const toolDef = TOOLS[tool]
     if (!toolDef) {
-      return new Response(JSON.stringify({ error: 'Tool ' + tool + ' no existe' }), { status: 404, headers })
+      return new Response(safeJsonStringify({ error: 'Tool ' + tool + ' no existe' }), { status: 404, headers })
     }
 
-    // Check plan access
     const userPlan = plan || 'basico'
     if (!toolDef.plans.includes(userPlan)) {
-      return new Response(JSON.stringify({
+      return new Response(safeJsonStringify({
         error: 'Plan ' + userPlan + ' no tiene acceso a ' + tool,
         required_plan: toolDef.plans
       }), { status: 403, headers })
     }
 
-    // Execute tool
     const result = await toolDef.execute(params || {}, company_id)
 
-    return new Response(JSON.stringify({
+    return new Response(safeJsonStringify({
       success: true,
       tool,
       result
     }), { headers })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return new Response(safeJsonStringify({ error: errorMessage }), { status: 500, headers })
   }
 }
