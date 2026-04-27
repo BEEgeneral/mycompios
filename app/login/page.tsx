@@ -10,6 +10,7 @@ export default function Login() {
   const [tab, setTab] = useState<'password' | 'magic'>('password')
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
+  const [isApiDown, setIsApiDown] = useState(false)
   const [emailError, setEmailError] = useState('')
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
@@ -35,11 +36,18 @@ export default function Login() {
         body: JSON.stringify(form),
       })
       const data = await res.json()
-      if (!res.ok || data.error) { setError(data.error || 'Email o contraseña incorrectos'); return }
+      if (!res.ok) {
+        if (res.status === 500) { setIsApiDown(true); setError('API en mantenimiento'); }
+        else setError(data?.error || 'Email o contraseña incorrectos')
+        return
+      }
       sessionStorage.setItem('mc_token', data.token)
       sessionStorage.setItem('mc_user', JSON.stringify(data.user))
       router.push('/dashboard')
-    } catch { setError('Error de conexión') }
+    } catch (e) { setIsApiDown(true); setError('Conexión no disponible') }
+    if (isApiDown) {
+      setError('Modo demo - API en mantenimiento')
+    }
     finally { setLoading(false) }
   }
 
