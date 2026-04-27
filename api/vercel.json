@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/auth-register", "destination": "/api/auth/register" },
+    { "source": "/api/auth-login", "destination": "/api/auth/login" },
+    { "source": "/api/fin-autonomous", "destination": "/api/fin/autonomous" },
+    { "source": "/api/business-core", "destination": "/api/business/core" },
+    { "source": "/api/autonomous", "destination": "/api/autonomous/index" },
+    { "source": "/api/chat", "destination": "/api/chat/index" },
+    { "source": "/api/learn", "destination": "/api/learn/index" },
+    { "source": "/api/knowledge", "destination": "/api/knowledge/index" },
+    { "source": "/api/trial-status", "destination": "/api/trial/status" }
+  ]
+}
