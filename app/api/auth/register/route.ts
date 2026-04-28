@@ -1,5 +1,6 @@
 'use strict'
 import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import crypto from 'crypto'
 import pg from 'pg'
 
