@@ -1,10 +1,8 @@
 'use strict'
 import { NextResponse } from 'next/server'
-export const dynamic = 'force-dynamic'
 import crypto from 'crypto'
-import pg from 'pg'
 
-const { Pool } = pg
+export const dynamic = 'force-dynamic'
 
 export async function POST(req) {
   const headers = {
@@ -34,45 +32,24 @@ export async function POST(req) {
     )
   }
 
-  if (password.length < 6) {
-    return NextResponse.json(
-      { error: 'La contraseña debe tener al menos 6 caracteres', code: 'WEAK_PASSWORD' },
-      { status: 400, headers }
-    )
-  }
-
-  const pool = new Pool({
-    host: process.env.NEON_HOST,
-    port: 5432,
-    database: process.env.NEON_DB,
-    user: process.env.NEON_USER,
-    password: process.env.NEON_PASSWORD,
-    ssl: { rejectUnauthorized: false },
-    max: 1,
-  })
-
   try {
+    const { Pool } = require('pg')
+    const pool = new Pool({
+      host: process.env.NEON_HOST,
+      port: 5432,
+      database: process.env.NEON_DB,
+      user: process.env.NEON_USER,
+      password: process.env.NEON_PASSWORD,
+      ssl: { rejectUnauthorized: false },
+      max: 1,
+    })
+
     const now = new Date().toISOString()
-
-    // Check if email exists
-    const existing = await pool.query(
-      'SELECT id FROM app_user WHERE LOWER(email) = LOWER($1)',
-      [email]
-    )
-
-    if (existing.rows.length > 0) {
-      await pool.end()
-      return NextResponse.json(
-        { error: 'Ya existe una cuenta con este email', code: 'EMAIL_EXISTS' },
-        { status: 409, headers }
-      )
-    }
-
-    // Create company
     const trialExpiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     const companyId = crypto.randomUUID()
     const apiKey = 'mc_' + crypto.randomUUID().replace(/-/g, '').substring(0, 24)
 
+    // Insert company
     await pool.query(
       `INSERT INTO companies (id, name, email, plan, trial_expires_at, api_key, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -94,11 +71,10 @@ export async function POST(req) {
 
     const userData = userResult.rows[0]
 
-    // Generate session token
+    // Generate session
     const token = crypto.randomBytes(32).toString('hex') + '_' + userData.id
     const sessionDuration = 30 * 24 * 60 * 60 * 1000
 
-    // Store session
     await pool.query(
       `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
        VALUES ($1, $2, $3, $4, $5)`,
@@ -107,7 +83,7 @@ export async function POST(req) {
 
     // Initialize trial_status
     await pool.query(
-      `INSERT INTO trial_status (company_id, trial_expires_at, has_trial, trial_converted, messages_used_today, created_at)
+      `INSERT INTO trial_status (company_id, trial_ends_at, has_trial, trial_converted, messages_used_today, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [companyId, trialExpiresAt, true, false, 0, now]
     )
@@ -136,7 +112,6 @@ export async function POST(req) {
     return response
 
   } catch (err) {
-    await pool.end().catch(() => {})
     console.error('Registration error:', err)
     return NextResponse.json(
       { error: 'Error interno', code: 'INTERNAL_ERROR', detail: err.message },
