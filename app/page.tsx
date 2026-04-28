@@ -107,8 +107,8 @@ export default function Landing() {
   const cats = ['Todas', 'General', 'Pagos', 'Técnico']
   const filteredFaq = faqFilter === 'Todas' ? FAQ : FAQ.filter(f => f.cat === faqFilter)
   const monthlyPrice = 49
-  const annualPrice = 390
-  const annualMonthly = 32.5
+  const annualPrice = 490
+  const annualMonthly = 40.83
 
   const handleContact = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -287,7 +287,7 @@ export default function Landing() {
                       <span style={{ fontSize: '3rem', fontWeight: 900, color: C.white }}>€{annualMonthly}</span>
                       <span style={{ color: C.pastel, fontSize: '0.9rem' }}>/mes</span>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: C.pastel, marginTop: '0.25rem' }}>€{annualPrice}/año — ahórrate €198 al año</p>
+                    <p style={{ fontSize: '0.8rem', color: C.pastel, marginTop: '0.25rem' }}>€{annualPrice}/año — ahórrate €98 al año</p>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
                     {['7 Compis agentes especializados', 'Marketing, ventas, atención al cliente', 'Reporting continuo', 'Chat con Paco, tu orquestador 24/7', '3 días gratis para probar', 'Prioridad en soporte'].map(f => (
