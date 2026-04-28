@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     const scores = await pool.query(`
       SELECT hs.company_id, c.name as company, hs.area, hs.health_score
       FROM health_scores hs
-      JOIN companies c ON c.id = hs.company_id
+      JOIN companies c ON c.id::text = hs.company_id
     `)
     
     // Group by company
