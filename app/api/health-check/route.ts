@@ -86,15 +86,28 @@ function calculateScore(value, green, yellow, inverted = false) {
 }
 
 function getCompanyMetrics(pool, companyId, stage) {
-  return pool.query(`
-    SELECT 
-      (SELECT COUNT(*) FROM public.clients WHERE company_id = $1) as client_count,
-      (SELECT COALESCE(SUM(total), 0) FROM public.fin_invoices WHERE company_id = $1) as revenue,
-      COALESCE(ts.messages_used_today, 0) as messages_today
-    FROM companies c
-    LEFT JOIN trial_status ts ON ts.company_id = c.id
-    WHERE c.id = $1
-  `, [companyId])
+  // Count clients for this company
+  const clientResult = await pool.query(
+    'SELECT COUNT(*) as cnt FROM clients WHERE company_id = $1', 
+    [companyId]
+  )
+  // Get revenue from fin_invoices
+  const revenueResult = await pool.query(
+    "SELECT COALESCE(SUM(total), 0) as rev FROM fin_invoices WHERE company_id = $1", 
+    [companyId]
+  )
+  // Get trial status
+  const trialResult = await pool.query(
+    'SELECT messages_used_today FROM trial_status WHERE company_id = $1', 
+    [companyId]
+  )
+  return {
+    rows: [{
+      client_count: parseInt(clientResult.rows[0]?.cnt || 0),
+      revenue: parseInt(revenueResult.rows[0]?.rev || 0),
+      messages_today: parseInt(trialResult.rows[0]?.messages_used_today || 0)
+    }]
+  }
 }
 
 function detectStage(clientCount, revenue) {
@@ -129,10 +142,10 @@ export async function GET(req: Request) {
 
     for (const cid of companyIds) {
       // Get company metrics
-      const metrics = await getCompanyMetrics(pool, cid, '')
-      if (metrics.rows.length === 0) continue
+      const metricsResult = await getCompanyMetrics(pool, cid, '')
+      if (!metricsResult.rows || metricsResult.rows.length === 0) continue
 
-      const { client_count, revenue } = metrics.rows[0]
+      const { client_count, revenue } = metricsResult.rows[0]
       const stage = detectStage(client_count, revenue)
 
       // Calculate health per area
