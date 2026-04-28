@@ -1,5 +1,5 @@
 // CHECK USAGE - Verificar si empresa puede usar agentes
-// Se llama antes de ejecutar cualquier tarea de agente
+import { NextResponse } from 'next/server'
 
 function getDbPool() {
   const { Pool } = require('pg')
@@ -109,14 +109,15 @@ export async function POST(req) {
     }
 
     // All checks passed
+    const daysLeft = trial.trial_ends_at ? 
+      Math.max(0, Math.floor((new Date(trial.trial_ends_at).getTime() - Date.now()) / 86400000)) : null
     return NextResponse.json({ 
       allowed: true, 
       messages_used_today: trial.messages_used_today,
       messages_remaining: DAILY_LIMIT - trial.messages_used_today,
       daily_limit: DAILY_LIMIT,
       trial_ends_at: trial.trial_ends_at,
-      days_remaining: trial.trial_ends_at ? 
-        Math.max(0, Math.floor((new Date(trial.trial_ends_at).getTime() - Date.now()) / 86400000) : null
+      days_remaining: daysLeft
     }, { status: 200, headers })
 
   } catch (err) {

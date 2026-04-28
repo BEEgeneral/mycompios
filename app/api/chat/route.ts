@@ -1,5 +1,5 @@
 // CHAT - Chat with agents (Paco, Lucía, Carlos)
-// Includes usage checking and credit limiting
+import { NextResponse } from 'next/server'
 
 function getDbPool() {
   const { Pool } = require('pg')
