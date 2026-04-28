@@ -166,7 +166,7 @@ export async function POST(req) {
     await pool.query(
       `INSERT INTO learning_interactions (company_id, agent_id, user_message, agent_response, created_at)
        VALUES ($1, $2, $3, $4, NOW())`,
-      [companyId, agent_id, message, response]
+      [companyId, selectedAgent, message, response]
     )
 
     await pool.end()
