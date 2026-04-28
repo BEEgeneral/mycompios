@@ -1,5 +1,6 @@
 'use strict'
 import { NextResponse } from 'next/server'
+export const runtime = 'nodejs'
 
 export async function POST(req) {
   try {
