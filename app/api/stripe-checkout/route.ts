@@ -22,7 +22,6 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Token requerido' }, { status: 401, headers })
     }
 
-    // Get company from session
     const { Pool } = require('pg')
     const pool = new Pool({
       host: process.env.NEON_HOST,
@@ -57,7 +56,6 @@ export async function POST(req) {
     const company = userResult.rows[0]
     await pool.end()
 
-    // Create Stripe checkout session
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
     const session = await stripe.checkout.sessions.create({
@@ -67,21 +65,19 @@ export async function POST(req) {
           currency: 'eur',
           product_data: {
             name: 'MyCompi Pro',
-            description: 'Acceso completo a todos los Compis (Paco, Lucía, Carlos) + tareas automatizadas',
-            images: ['https://mycompi.com/icon.png'],
+            description: 'Acceso completo a Compis',
           },
-          unit_amount: 4900, // €49.00
+          unit_amount: 4900,
           recurring: { interval: 'month' },
-        }],
+        },
         quantity: 1,
       }],
       mode: 'subscription',
-      success_url: `https://mycompios.vercel.app/dashboard?upgrade=success`,
-      cancel_url: `https://mycompios.vercel.app/dashboard?upgrade=cancelled`,
+      success_url: 'https://mycompios.vercel.app/dashboard?upgrade=success',
+      cancel_url: 'https://mycompios.vercel.app/dashboard?upgrade=cancelled',
       metadata: {
         company_id: company.company_id,
       },
-      customer_email: company.email,
     })
 
     return NextResponse.json({

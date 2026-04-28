@@ -7,9 +7,10 @@ export async function POST(req) {
   }
 
   try {
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
     const body = await req.text()
     const sig = req.headers.get('stripe-signature')
+
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
     let event
     try {
@@ -36,53 +37,29 @@ export async function POST(req) {
         const companyId = session.metadata?.company_id
         
         if (companyId && session.subscription) {
-          // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(session.subscription)
           
-          // Update company to pro
           await pool.query(
-            `UPDATE companies SET plan = 'pro', stripe_subscription_id = $1, stripe_customer_id = $2 WHERE id = $3`,
-            [subscription.id, session.customer, companyId]
+            'UPDATE companies SET plan = $1, stripe_subscription_id = $2, stripe_customer_id = $3 WHERE id = $4',
+            ['pro', subscription.id, session.customer, companyId]
           )
           
-          // Update trial status
           await pool.query(
-            `UPDATE trial_status SET has_trial = false, trial_converted = true, converted_at = NOW() WHERE company_id = $1`,
+            'UPDATE trial_status SET has_trial = false, trial_converted = true, converted_at = NOW() WHERE company_id = $1',
             [companyId]
           )
           
-          console.log(`Company ${companyId} upgraded to pro`)
+          console.log('Company upgraded:', companyId)
         }
         break
       }
       
       case 'customer.subscription.deleted': {
         const subscription = event.data.object
-        const customerId = subscription.customer
-        
-        // Find and update company
-        const result = await pool.query(
-          `UPDATE companies SET plan = 'cancelled' WHERE stripe_customer_id = $1`,
-          [customerId]
-        )
-        
-        if (result.rowCount > 0) {
-          console.log(`Subscription cancelled for customer ${customerId}`)
-        }
-        break
-      }
-      
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object
-        const customerId = invoice.customer
-        
-        // Mark as past_due
         await pool.query(
-          `UPDATE companies SET plan = 'past_due' WHERE stripe_customer_id = $1`,
-          [customerId]
+          'UPDATE companies SET plan = cancelled WHERE stripe_customer_id = $1',
+          [subscription.customer]
         )
-        
-        console.log(`Payment failed for customer ${customerId}`)
         break
       }
     }
