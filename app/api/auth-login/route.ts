@@ -1,4 +1,5 @@
-import crypto, { createHash } from 'crypto'
+import { NextResponse } from 'next/server'
+import crypto, { createHash, randomBytes, randomUUID } from 'crypto'
 
 // Rate limiting
 const loginLimits = new Map()
