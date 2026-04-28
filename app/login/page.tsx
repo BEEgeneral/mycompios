@@ -80,10 +80,12 @@ export default function Login() {
         {error && !isApiDown && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '0.7rem 1rem', marginBottom: '1rem', color: C.red, fontSize: '0.85rem' }}>{error}</div>}
 
         <form onSubmit={tab === 'password' ? handleSubmit : (e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: C.dark, marginBottom: '0.35rem' }}>Email</label>
-            <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="tu@email.com" autoComplete="email" style={{ width: '100%', padding: '0.75rem 1rem', background: C.cream, border: '1.5px solid', borderColor: error ? C.red : C.pastel, borderRadius: 10, color: C.dark, fontSize: '0.92rem' }} />
-          </div>
+          {tab === 'password' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: C.dark, marginBottom: '0.35rem' }}>Email</label>
+              <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="tu@email.com" autoComplete="email" style={{ width: '100%', padding: '0.75rem 1rem', background: C.cream, border: '1.5px solid', borderColor: error ? C.red : C.pastel, borderRadius: 10, color: C.dark, fontSize: '0.92rem' }} />
+            </div>
+          )}
           {tab === 'password' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
