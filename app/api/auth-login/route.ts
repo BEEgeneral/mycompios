@@ -79,7 +79,8 @@ export async function POST(req: Request) {
     const user = userResult.rows[0]
 
     // Verify password
-    const pwHash = crypto.createHash('sha256').update(password).digest('hex')
+    const salt = 'MYCOMPI_SALT_2026'
+    const pwHash = crypto.createHash('sha256').update(password + salt).digest('hex')
     const pwResult = await pool.query(
       'SELECT id FROM app_user WHERE email = $1 AND password_hash = $2',
       [email, pwHash]
