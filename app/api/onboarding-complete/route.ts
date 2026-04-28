@@ -108,16 +108,16 @@ export async function POST(req: Request) {
 
     // Initialize client tasks for agents
     const agentTasks = [
-      { agent_id: 'paco', task_type: 'onboarding', title: 'Revisar info del cliente', priority: 'high' },
-      { agent_id: 'lucia', task_type: 'outreach', title: 'Preparar estrategia inicial', priority: 'medium' },
-      { agent_id: 'carlos', task_type: 'sales', title: 'Analizar oportunidades', priority: 'medium' },
+      { agent_slug: 'paco', task_type: 'onboarding', title: 'Revisar info del cliente' },
+      { agent_slug: 'lucia', task_type: 'outreach', title: 'Preparar estrategia inicial' },
+      { agent_slug: 'carlos', task_type: 'sales', title: 'Analizar oportunidades' },
     ]
 
     for (const task of agentTasks) {
       await pool.query(
-        `INSERT INTO client_tasks (id, company_id, agent_id, task_type, title, priority, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [crypto.randomUUID(), companyId, task.agent_id, task.task_type, task.title, task.priority, 'pending', now]
+        `INSERT INTO client_tasks (id, company_id, agent_slug, task_type, title, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [crypto.randomUUID(), companyId, task.agent_slug, task.task_type, task.title, 'pending', now]
       )
     }
 
