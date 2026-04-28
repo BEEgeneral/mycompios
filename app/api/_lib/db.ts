@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { Pool } from 'pg'
 
 const pool = new Pool({
@@ -7,7 +6,10 @@ const pool = new Pool({
   database: process.env.NEON_DB || 'neondb',
   user: process.env.NEON_USER || 'neondb_owner',
   password: process.env.NEON_PASSWORD || 'npg_WtabOh4u2KiL',
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  max: 1,
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 5000,
 })
 
 export async function query(text: string, params: any[]) {
