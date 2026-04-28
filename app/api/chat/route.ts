@@ -82,11 +82,14 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Token requerido' }, { status: 401, headers })
     }
 
-    const { agent_id, message } = await req.json()
+    const { agent_id, agent, message } = await req.json()
 
     if (!message) {
       return NextResponse.json({ error: 'Mensaje requerido' }, { status: 400, headers })
     }
+
+    // Support both agent_id and agent (legacy)
+    const selectedAgent = agent_id || agent || 'paco'
 
     const pool = getDbPool()
 
@@ -152,7 +155,7 @@ export async function POST(req) {
     }
 
     // Get agent config
-    const agentConfig = AGENTS[agent_id] || AGENTS.paco
+    const agentConfig = AGENTS[selectedAgent] || AGENTS.paco
 
     // Call LLM
     const response = await callLLM([
