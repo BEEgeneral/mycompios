@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 
+// Rate limiting
+const loginLimits = new Map()
+const LOGIN_MAX = 10
+const LOGIN_WINDOW = 3600000
+
+function checkLoginLimit(ip) {
+  const now = Date.now()
+  const r = loginLimits.get(ip) || { count: 0, resetAt: now + LOGIN_WINDOW }
+  if (now > r.resetAt) { r.count = 0; r.resetAt = now + LOGIN_WINDOW }
+  r.count++
+  loginLimits.set(ip, r)
+  if (r.count > LOGIN_MAX) return Math.ceil((r.resetAt - now) / 1000)
+  return 0
+}
+
 export async function POST(req: Request) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -11,6 +26,15 @@ export async function POST(req: Request) {
 
   if (req.method === 'OPTIONS') {
     return new NextResponse('', { status: 200, headers })
+  }
+
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const retrySec = checkLoginLimit(ip)
+  if (retrySec > 0) {
+    return NextResponse.json(
+      { error: 'Demasiados intentos', code: 'RATE_LIMITED', retryAfter: retrySec },
+      { status: 429, headers }
+    )
   }
 
   try {
