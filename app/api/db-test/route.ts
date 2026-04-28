@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     // Test 2: Can we query clients?
     let clientsCount = 0
     try {
-      const clients = await pool.query('SELECT COUNT(*) as cnt FROM clients')
+      const clients = await pool.query('SELECT COUNT(*) as cnt FROM fin_clients')
       clientsCount = parseInt(clients.rows[0].cnt)
     } catch (e) {
       clientsCount = -1
