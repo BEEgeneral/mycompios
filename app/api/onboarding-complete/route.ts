@@ -115,9 +115,9 @@ export async function POST(req: Request) {
 
     for (const task of agentTasks) {
       await pool.query(
-        `INSERT INTO client_tasks (id, company_id, agent_slug, task_type, title, status, created_at)
+        `INSERT INTO client_tasks (id, company_id, agent_slug, task_type, task_data, status, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [crypto.randomUUID(), companyId, task.agent_slug, task.task_type, task.title, 'pending', now]
+        [crypto.randomUUID(), companyId, task.agent_slug, task.task_type, JSON.stringify({title: task.title}), 'pending', now]
       )
     }
 
