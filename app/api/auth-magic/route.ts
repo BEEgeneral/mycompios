@@ -1,5 +1,6 @@
 // AUTH MAGIC LINK - Send magic link email
 import { NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM_EMAIL = 'MyCompi <hello@mycompi.com>'
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
     const user = userResult.rows[0]
 
     // Generate magic token
-    const token = crypto.randomBytes(32).toString('hex')
+    const token = randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 min
 
     // Store token in sessions table with type 'magic'

@@ -1,5 +1,6 @@
 // AUTH VERIFY MAGIC LINK - Validate token and create session
 import { NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 
 export async function GET(req: Request) {
   const headers = {
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
     )
 
     // Create new session
-    const sessionToken = crypto.randomBytes(32).toString('hex') + '_' + user.id
+    const sessionToken = randomBytes(32).toString('hex') + '_' + user.id
     const sessionDuration = 30 * 24 * 60 * 60 * 1000
 
     await pool.query(
