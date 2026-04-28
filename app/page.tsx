@@ -107,8 +107,8 @@ export default function Landing() {
   const cats = ['Todas', 'General', 'Pagos', 'Técnico']
   const filteredFaq = faqFilter === 'Todas' ? FAQ : FAQ.filter(f => f.cat === faqFilter)
   const monthlyPrice = 49
-  const annualPrice = 490
-  const annualMonthly = 40.83
+  const annualPrice = 486
+  const annualMonthly = 40.5
 
   const handleContact = async (e: React.FormEvent) => {
     e.preventDefault()
