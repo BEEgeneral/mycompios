@@ -1,27 +1,20 @@
-// MyCompi Authentication - Register v2
-// Fixed: companyId instead of company, local operations, no external calls
-
+'use strict'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { query } from '@/lib/db'
+import pg from 'pg'
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_cP3wchHq_Axh4QPXz1iaDDzupZ7ab1pQV'
-const APP_URL = process.env.APP_URL || 'https://mycompios.vercel.app'
+const { Pool } = pg
 
-export async function POST(req: Request) {
+export async function POST(req) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
   }
 
   if (req.method === 'OPTIONS') {
     return new NextResponse('', { status: 200, headers })
-  }
-
-  if (req.method !== 'POST') {
-    return NextResponse.json({ error: 'POST only' }, { status: 405, headers })
   }
 
   let body
@@ -31,7 +24,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400, headers })
   }
 
-  const { email, password, name, company, sector, vision } = body
+  const { email, password, name, company } = body
 
   if (!email || !password || !name || !company) {
     return NextResponse.json(
@@ -47,90 +40,78 @@ export async function POST(req: Request) {
     )
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email)) {
-    return NextResponse.json(
-      { error: 'Email inválido', code: 'INVALID_EMAIL' },
-      { status: 400, headers }
-    )
-  }
+  const pool = new Pool({
+    host: process.env.NEON_HOST,
+    port: 5432,
+    database: process.env.NEON_DB,
+    user: process.env.NEON_USER,
+    password: process.env.NEON_PASSWORD,
+    ssl: { rejectUnauthorized: false },
+    max: 1,
+  })
 
   try {
     const now = new Date().toISOString()
 
-    // Check if email already exists
-    const existing = await query(
+    // Check if email exists
+    const existing = await pool.query(
       'SELECT id FROM app_user WHERE LOWER(email) = LOWER($1)',
       [email]
     )
 
-    if (existing.length > 0) {
+    if (existing.rows.length > 0) {
+      await pool.end()
       return NextResponse.json(
         { error: 'Ya existe una cuenta con este email', code: 'EMAIL_EXISTS' },
         { status: 409, headers }
       )
     }
 
-    // Create company with trial (3 days)
+    // Create company
     const trialExpiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     const companyId = crypto.randomUUID()
     const apiKey = 'mc_' + crypto.randomUUID().replace(/-/g, '').substring(0, 24)
 
-    await query(
-      `INSERT INTO companies (id, name, email, plan, trial_expires_at, api_key, created_at, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [companyId, company, email.toLowerCase(), 'trial', trialExpiresAt, apiKey, now, JSON.stringify({ sector: sector || 'general', vision: vision || '' })]
+    await pool.query(
+      `INSERT INTO companies (id, name, email, plan, trial_expires_at, api_key, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [companyId, company, email.toLowerCase(), 'trial', trialExpiresAt, apiKey, now]
     )
 
-    // Hash password using Node.js crypto
+    // Hash password
     const salt = 'MYCOMPI_SALT_2026'
     const passwordHash = crypto.createHash('sha256').update(password + salt).digest('hex')
 
-    // Create user with company_id (UUID)
+    // Create user
     const userId = crypto.randomUUID()
-    const userResult = await query(
+    const userResult = await pool.query(
       `INSERT INTO app_user (id, name, email, company_id, password_hash, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, name, email`,
       [userId, name, email.toLowerCase(), companyId, passwordHash, now]
     )
 
-    if (userResult.length === 0) {
-      return NextResponse.json(
-        { error: 'Error al crear la cuenta', code: 'DB_ERROR' },
-        { status: 500, headers }
-      )
-    }
-
-    const userData = userResult[0]
+    const userData = userResult.rows[0]
 
     // Generate session token
     const token = crypto.randomBytes(32).toString('hex') + '_' + userData.id
     const sessionDuration = 30 * 24 * 60 * 60 * 1000
 
     // Store session
-    await query(
+    await pool.query(
       `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
        VALUES ($1, $2, $3, $4, $5)`,
       [crypto.randomUUID(), userData.id, token, now, new Date(Date.now() + sessionDuration).toISOString()]
     )
 
     // Initialize trial_status
-    await query(
+    await pool.query(
       `INSERT INTO trial_status (company_id, trial_expires_at, has_trial, trial_converted, messages_used_today, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [companyId, trialExpiresAt, true, false, 0, now]
     )
 
-    // Initialize email_sequence_status
-    await query(
-      `INSERT INTO email_sequence_status (id, company_id, sequence, step, sent_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [crypto.randomUUID(), companyId, 'welcome', 0, now, now]
-    )
-
-    // Send welcome email (non-blocking, ignore errors)
-    sendWelcomeEmail(email, company).catch(e => console.log('Email error:', e.message))
+    await pool.end()
 
     const response = NextResponse.json(
       {
@@ -139,8 +120,6 @@ export async function POST(req: Request) {
         companyId: companyId,
         token,
         trial_expires_at: trialExpiresAt,
-        agentsInitialized: true,
-        tasksInitialized: true,
         user: { id: userData.id, name: userData.name, email: userData.email }
       },
       { status: 200, headers }
@@ -156,58 +135,11 @@ export async function POST(req: Request) {
     return response
 
   } catch (err) {
+    await pool.end().catch(() => {})
     console.error('Registration error:', err)
     return NextResponse.json(
-      { error: 'Error interno', code: 'INTERNAL_ERROR' },
+      { error: 'Error interno', code: 'INTERNAL_ERROR', detail: err.message },
       { status: 500, headers }
     )
   }
-}
-
-async function sendWelcomeEmail(email: string, companyName: string) {
-  try {
-    const html = buildWelcomeEmail(companyName)
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`
-      },
-      body: JSON.stringify({
-        from: 'MyCompi <onboarding@resend.dev>',
-        to: [email],
-        subject: `Bienvenido a MyCompi, ${companyName}!`,
-        html
-      })
-    })
-  } catch (e) {
-    console.log('Email send error:', e.message)
-  }
-}
-
-function buildWelcomeEmail(companyName: string) {
-  return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Bienvenido a MyCompi</title>
-</head>
-<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Poppins',Segoe UI,sans-serif;">
-  <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-    <div style="background:#2D3261;padding:32px 40px;">
-      <div style="color:#FFD154;font-size:22px;font-weight:700;">Bienvenido/a ${companyName}!</div>
-    </div>
-    <div style="padding:36px 40px;">
-      <p style="font-size:17px;color:#333;">Tu equipo de Compis esta listo.</p>
-      <p style="font-size:16px;color:#444;line-height:1.7;">Tienes 3 dias de prueba gratis. Empieza en tu dashboard.</p>
-      <div style="text-align:center;margin:32px 0 0 0;">
-        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#FFD054;color:#2D3261;font-weight:700;padding:14px 32px;border-radius:9999px;text-decoration:none;font-size:15px;">Ir al dashboard</a>
-      </div>
-    </div>
-    <div style="background:#f8f8f8;padding:20px 40px;text-align:center;">
-      <p style="color:#999;font-size:12px;margin:0;">MyCompi - 49€/mes - Sin permanencia</p>
-    </div>
-  </div>
-</body>
-</html>`
 }

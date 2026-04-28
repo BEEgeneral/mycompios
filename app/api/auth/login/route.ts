@@ -1,11 +1,11 @@
-// MyCompi Authentication - Login
-// Migrated from InsForge (Deno) to Vercel (Node.js)
-
+'use strict'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { query } from '@/lib/db'
+import pg from 'pg'
 
-export async function POST(req: Request) {
+const { Pool } = pg
+
+export async function POST(req) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -15,10 +15,6 @@ export async function POST(req: Request) {
 
   if (req.method === 'OPTIONS') {
     return new NextResponse('', { status: 200, headers })
-  }
-
-  if (req.method !== 'POST') {
-    return NextResponse.json({ error: 'Método no permitido' }, { status: 405, headers })
   }
 
   let body
@@ -37,26 +33,38 @@ export async function POST(req: Request) {
     )
   }
 
+  const pool = new Pool({
+    host: process.env.NEON_HOST,
+    port: 5432,
+    database: process.env.NEON_DB,
+    user: process.env.NEON_USER,
+    password: process.env.NEON_PASSWORD,
+    ssl: { rejectUnauthorized: false },
+    max: 1,
+  })
+
   try {
-    const users = await query(
+    const users = await pool.query(
       'SELECT * FROM app_user WHERE LOWER(email) = LOWER($1)',
       [email]
     )
 
-    if (users.length === 0) {
+    if (users.rows.length === 0) {
+      await pool.end()
       return NextResponse.json(
         { error: 'Credenciales inválidas', code: 'INVALID_CREDENTIALS' },
         { status: 401, headers }
       )
     }
 
-    const user = users[0]
+    const user = users.rows[0]
 
-    // Hash password check using Node.js crypto
+    // Hash password check
     const salt = 'MYCOMPI_SALT_2026'
     const passwordHash = crypto.createHash('sha256').update(password + salt).digest('hex')
 
     if (user.password_hash !== passwordHash) {
+      await pool.end()
       return NextResponse.json(
         { error: 'Credenciales inválidas', code: 'INVALID_CREDENTIALS' },
         { status: 401, headers }
@@ -64,14 +72,13 @@ export async function POST(req: Request) {
     }
 
     // Generate session token
-    const tokenBuffer = crypto.randomBytes(32)
-    const token = tokenBuffer.toString('hex') + '_' + user.id
+    const token = crypto.randomBytes(32).toString('hex') + '_' + user.id
     const sessionDuration = 30 * 24 * 60 * 60 * 1000
     const now = new Date().toISOString()
 
     // Store session
     try {
-      await query(
+      await pool.query(
         `INSERT INTO sessions (user_id, token, created_at, expires_at)
          VALUES ($1, $2, $3, $4)`,
         [user.id, token, now, new Date(Date.now() + sessionDuration).toISOString()]
@@ -80,23 +87,25 @@ export async function POST(req: Request) {
       console.log('Session insert warning:', e.message)
     }
 
-    // Get trial status from company
+    // Get trial status
     let trialInfo = { has_trial: true, trial_expires_at: null }
     try {
-      const companies = await query(
+      const companies = await pool.query(
         'SELECT plan, trial_expires_at FROM companies WHERE LOWER(email) = LOWER($1)',
         [email]
       )
-      if (companies.length > 0) {
-        const company = companies[0]
+      if (companies.rows.length > 0) {
+        const company = companies.rows[0]
         trialInfo = {
           has_trial: company.plan === 'trial',
           trial_expires_at: company.trial_expires_at
         }
       }
     } catch (e) {
-      console.log('Trial info lookup warning:', e.message)
+      console.log('Trial info warning:', e.message)
     }
+
+    await pool.end()
 
     const response = NextResponse.json(
       {
@@ -124,9 +133,10 @@ export async function POST(req: Request) {
     return response
 
   } catch (err) {
+    await pool.end().catch(() => {})
     console.error('Login error:', err)
     return NextResponse.json(
-      { error: 'Error al iniciar sesión', code: 'INTERNAL_ERROR' },
+      { error: 'Error al iniciar sesión', code: 'INTERNAL_ERROR', detail: err.message },
       { status: 500, headers }
     )
   }
