@@ -1,6 +1,6 @@
 // AUTH RESET PASSWORD - Send password reset email
 import { NextResponse } from 'next/server'
-import { randomBytes } from 'crypto'
+import crypto, { randomBytes, randomUUID } from 'crypto'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM_EMAIL = 'MyCompi <hello@mycompi.com>'

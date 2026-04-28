@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server'
-import crypto from 'crypto'
+import crypto, { createHash } from 'crypto'
 
 // Rate limiting
 const ipLimits = new Map()
@@ -106,7 +105,7 @@ export async function POST(req: Request) {
 
     // Hash password
     const salt = 'MYCOMPI_SALT_2026'
-    const passwordHash = crypto.createHash('sha256').update(password + salt).digest('hex')
+    const passwordHash = createHash('sha256').update(password + salt).digest('hex')
 
     // Create user
     const userId = crypto.randomUUID()

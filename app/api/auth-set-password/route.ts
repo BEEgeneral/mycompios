@@ -1,6 +1,6 @@
 // AUTH SET PASSWORD - Set new password from reset token
 import { NextResponse } from 'next/server'
-import { randomBytes } from 'crypto'
+import { randomBytes, createHash } from 'crypto'
 
 export async function POST(req: Request) {
   const headers = {
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     // Hash password and update
-    const pwHash = crypto.createHash('sha256').update(password).digest('hex')
+    const pwHash = createHash('sha256').update(password).digest('hex')
     
     await pool.query(
       'UPDATE app_user SET password_hash = $1 WHERE id = $2',

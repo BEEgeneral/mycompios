@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server'
-import crypto from 'crypto'
+import crypto, { createHash } from 'crypto'
 
 // Rate limiting
 const loginLimits = new Map()
@@ -80,7 +79,7 @@ export async function POST(req: Request) {
 
     // Verify password
     const salt = 'MYCOMPI_SALT_2026'
-    const pwHash = crypto.createHash('sha256').update(password + salt).digest('hex')
+    const pwHash = createHash('sha256').update(password + salt).digest('hex')
     const pwResult = await pool.query(
       'SELECT id FROM app_user WHERE email = $1 AND password_hash = $2',
       [email, pwHash]
