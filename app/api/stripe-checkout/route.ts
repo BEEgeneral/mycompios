@@ -1,8 +1,8 @@
-// STRIPE CHECKOUT - Create checkout session for subscription
+// STRIPE CHECKOUT - Create checkout session with plan selection
 
 import { NextResponse } from 'next/server'
 
-export async function POST(req) {
+export async function POST(req: Request) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -58,18 +58,13 @@ export async function POST(req) {
 
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
+    const body = await req.json()
+    const { priceId } = body
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: 'MyCompi Pro',
-            description: 'Acceso completo a Compis',
-          },
-          unit_amount: 4900,
-          recurring: { interval: 'month' },
-        },
+        price: priceId || 'price_1TMWMHFnOlGTfuoBIKY9H2P7',
         quantity: 1,
       }],
       mode: 'subscription',
