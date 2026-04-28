@@ -4,7 +4,7 @@ function getDbPool() {
   const { Pool } = require('pg')
   return new Pool({
     host: process.env.NEON_HOST,
-    port: 5432,
+    port: process.env.NEON_PORT || 5432,
     database: process.env.NEON_DB,
     user: process.env.NEON_USER,
     password: process.env.NEON_PASSWORD,
@@ -22,29 +22,38 @@ export async function GET(req: Request) {
   try {
     const pool = getDbPool()
     
-    // Test 1: Can we query companies?
+    // Test 1: Can we query companies (our table)?
     const companies = await pool.query('SELECT COUNT(*) as cnt FROM companies')
     
     // Test 2: Can we query clients?
-    const clients = await pool.query('SELECT COUNT(*) as cnt FROM clients')
+    let clientsCount = 0
+    try {
+      const clients = await pool.query('SELECT COUNT(*) as cnt FROM clients')
+      clientsCount = parseInt(clients.rows[0].cnt)
+    } catch (e) {
+      clientsCount = -1
+    }
     
-    // Test 3: What's in search_path?
-    const searchPath = await pool.query('SHOW search_path')
+    // Test 3: List some tables
+    const tables = await pool.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' LIMIT 10"
+    )
     
     await pool.end()
     
     return NextResponse.json({
       success: true,
       companies_count: companies.rows[0].cnt,
-      clients_count: clients.rows[0].cnt,
-      search_path: searchPath.rows[0]
+      clients_count: clientsCount,
+      tables: tables.rows.map(r => r.table_name)
     }, { status: 200, headers })
 
   } catch (err) {
     console.error('DB test error:', err)
     return NextResponse.json({
       success: false,
-      error: err.message
+      error: err.message,
+      detail: err.stack
     }, { status: 500, headers })
   }
 }
