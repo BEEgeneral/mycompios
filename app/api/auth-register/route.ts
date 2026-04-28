@@ -1,6 +1,30 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 
+// Rate limiting
+const ipLimits = new Map()
+const RATE_MAX = 5
+const RATE_WINDOW = 3600000
+
+function checkRateLimit(ip) {
+  const now = Date.now()
+  const record = ipLimits.get(ip) || { count: 0, resetAt: now + RATE_WINDOW }
+  if (now > record.resetAt) {
+    record.count = 0
+    record.resetAt = now + RATE_WINDOW
+  }
+  record.count++
+  ipLimits.set(ip, record)
+  if (record.count > RATE_MAX) {
+    return Math.ceil((record.resetAt - now) / 1000)
+  }
+  return 0
+}
+
+function getClientIP(req) {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+}
+
 function getDbPool() {
   const { Pool } = require('pg')
   return new Pool({
@@ -24,6 +48,15 @@ export async function POST(req: Request) {
 
   if (req.method === 'OPTIONS') {
     return new NextResponse('', { status: 200, headers })
+  }
+
+  const ip = getClientIP(req)
+  const retryAfter = checkRateLimit(ip)
+  if (retryAfter > 0) {
+    return NextResponse.json(
+      { error: 'Demasiados registros', code: 'RATE_LIMITED', retryAfter },
+      { status: 429, headers }
+    )
   }
 
   try {
