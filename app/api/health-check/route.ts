@@ -88,8 +88,8 @@ function calculateScore(value, green, yellow, inverted = false) {
 function getCompanyMetrics(pool, companyId, stage) {
   return pool.query(`
     SELECT 
-      COALESCE((SELECT COUNT(*) FROM clients WHERE company_id = $1), 0) as client_count,
-      COALESCE((SELECT COALESCE(SUM(total), 0) FROM fin_invoices WHERE company_id = $1), 0) as revenue,
+      (SELECT COUNT(*) FROM public.clients WHERE company_id = $1) as client_count,
+      (SELECT COALESCE(SUM(total), 0) FROM public.fin_invoices WHERE company_id = $1) as revenue,
       COALESCE(ts.messages_used_today, 0) as messages_today
     FROM companies c
     LEFT JOIN trial_status ts ON ts.company_id = c.id
