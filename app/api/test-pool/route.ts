@@ -1,6 +1,5 @@
 'use strict'
 import { NextResponse } from 'next/server'
-export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
@@ -18,6 +17,6 @@ export async function GET() {
     await pool.end()
     return NextResponse.json({ ok: true, result: r.rows[0] })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: err.message, stack: err.stack })
+    return NextResponse.json({ ok: false, error: err.message })
   }
 }
