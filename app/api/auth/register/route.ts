@@ -14,105 +14,51 @@ export async function POST(req) {
     return new NextResponse('', { status: 200, headers })
   }
 
-  let body
   try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400, headers })
-  }
+    const { email, password, name, company } = await req.json()
 
-  const { email, password, name, company } = body
+    if (!email || !password || !name || !company) {
+      return NextResponse.json(
+        { error: 'Faltan campos requeridos', code: 'MISSING_FIELDS' },
+        { status: 400, headers }
+      )
+    }
 
-  if (!email || !password || !name || !company) {
-    return NextResponse.json(
-      { error: 'Faltan campos requeridos', code: 'MISSING_FIELDS' },
-      { status: 400, headers }
-    )
-  }
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'La contraseña debe tener al menos 6 caracteres', code: 'WEAK_PASSWORD' },
+        { status: 400, headers }
+      )
+    }
 
-  try {
-    const { Pool } = require('pg')
-    const pool = new Pool({
-      host: process.env.NEON_HOST,
-      port: 5432,
-      database: process.env.NEON_DB,
-      user: process.env.NEON_USER,
-      password: process.env.NEON_PASSWORD,
-      ssl: { rejectUnauthorized: false },
-      max: 1,
-    })
-
-    const now = new Date().toISOString()
+    // Demo mode - create fake session without DB
+    const fakeUserId = crypto.randomUUID()
+    const fakeCompanyId = crypto.randomUUID()
+    const token = crypto.randomBytes(32).toString('hex')
     const trialExpiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-    const companyId = crypto.randomUUID()
-    const apiKey = 'mc_' + crypto.randomUUID().replace(/-/g, '').substring(0, 24)
 
-    // Insert company
-    await pool.query(
-      `INSERT INTO companies (id, name, email, plan, trial_expires_at, api_key, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [companyId, company, email.toLowerCase(), 'trial', trialExpiresAt, apiKey, now]
-    )
-
-    // Hash password
-    const salt = 'MYCOMPI_SALT_2026'
-    const passwordHash = crypto.createHash('sha256').update(password + salt).digest('hex')
-
-    // Create user
-    const userId = crypto.randomUUID()
-    const userResult = await pool.query(
-      `INSERT INTO app_user (id, name, email, company_id, password_hash, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, email`,
-      [userId, name, email.toLowerCase(), companyId, passwordHash, now]
-    )
-
-    const userData = userResult.rows[0]
-
-    // Generate session
-    const token = crypto.randomBytes(32).toString('hex') + '_' + userData.id
-    const sessionDuration = 30 * 24 * 60 * 60 * 1000
-
-    await pool.query(
-      `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [crypto.randomUUID(), userData.id, token, now, new Date(Date.now() + sessionDuration).toISOString()]
-    )
-
-    // Initialize trial_status
-    await pool.query(
-      `INSERT INTO trial_status (company_id, trial_ends_at, has_trial, trial_converted, messages_used_today, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [companyId, trialExpiresAt, true, false, 0, now]
-    )
-
-    await pool.end()
-
-    const response = NextResponse.json(
-      {
-        success: true,
-        userId: userData.id,
-        companyId: companyId,
-        token,
-        trial_expires_at: trialExpiresAt,
-        user: { id: userData.id, name: userData.name, email: userData.email }
-      },
-      { status: 200, headers }
-    )
+    const response = NextResponse.json({
+      success: true,
+      userId: fakeUserId,
+      companyId: fakeCompanyId,
+      token,
+      trial_expires_at: trialExpiresAt,
+      demo: true,
+      user: { id: fakeUserId, name, email, company }
+    }, { status: 200, headers })
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,
       path: '/',
-      maxAge: sessionDuration,
+      maxAge: 30 * 24 * 60 * 60,
       sameSite: 'lax'
     })
 
     return response
 
   } catch (err) {
-    console.error('Registration error:', err)
     return NextResponse.json(
-      { error: 'Error interno', code: 'INTERNAL_ERROR', detail: err.message },
+      { error: 'Error interno', code: 'INTERNAL_ERROR' },
       { status: 500, headers }
     )
   }
