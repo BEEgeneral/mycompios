@@ -1,6 +1,7 @@
 // AUTH VERIFY MAGIC LINK - Validate token and create session
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
+import { randomUUID } from 'crypto'
 
 export async function GET(req: Request) {
   const headers = {
@@ -66,7 +67,7 @@ export async function GET(req: Request) {
     await pool.query(
       `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
        VALUES ($1, $2, $3, NOW(), $4)`,
-      [crypto.randomUUID(), user.id, sessionToken, new Date(Date.now() + sessionDuration).toISOString()]
+      [randomUUID(), user.id, sessionToken, new Date(Date.now() + sessionDuration).toISOString()]
     )
 
     await pool.end()
