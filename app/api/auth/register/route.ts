@@ -2,8 +2,6 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 
-export const dynamic = 'force-dynamic'
-
 export async function POST(req) {
   const headers = {
     'Access-Control-Allow-Origin': '*',

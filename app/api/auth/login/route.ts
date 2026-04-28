@@ -1,10 +1,6 @@
 'use strict'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
-import pg from 'pg'
-export const dynamic = 'force-dynamic'
-
-const { Pool } = pg
 
 export async function POST(req) {
   const headers = {
@@ -34,17 +30,18 @@ export async function POST(req) {
     )
   }
 
-  const pool = new Pool({
-    host: process.env.NEON_HOST,
-    port: 5432,
-    database: process.env.NEON_DB,
-    user: process.env.NEON_USER,
-    password: process.env.NEON_PASSWORD,
-    ssl: { rejectUnauthorized: false },
-    max: 1,
-  })
-
   try {
+    const { Pool } = require('pg')
+    const pool = new Pool({
+      host: process.env.NEON_HOST,
+      port: 5432,
+      database: process.env.NEON_DB,
+      user: process.env.NEON_USER,
+      password: process.env.NEON_PASSWORD,
+      ssl: { rejectUnauthorized: false },
+      max: 1,
+    })
+
     const users = await pool.query(
       'SELECT * FROM app_user WHERE LOWER(email) = LOWER($1)',
       [email]
@@ -80,9 +77,9 @@ export async function POST(req) {
     // Store session
     try {
       await pool.query(
-        `INSERT INTO sessions (user_id, token, created_at, expires_at)
-         VALUES ($1, $2, $3, $4)`,
-        [user.id, token, now, new Date(Date.now() + sessionDuration).toISOString()]
+        `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [crypto.randomUUID(), user.id, token, now, new Date(Date.now() + sessionDuration).toISOString()]
       )
     } catch (e) {
       console.log('Session insert warning:', e.message)
@@ -134,7 +131,6 @@ export async function POST(req) {
     return response
 
   } catch (err) {
-    await pool.end().catch(() => {})
     console.error('Login error:', err)
     return NextResponse.json(
       { error: 'Error al iniciar sesión', code: 'INTERNAL_ERROR', detail: err.message },
