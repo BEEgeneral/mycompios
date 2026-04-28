@@ -7,8 +7,7 @@ const TRIGGERS = [
   { area: 'A3', name: 'invoice_overdue', condition: (val) => val > 15, threshold: 15, agent: 'carlos', severity: 'critical', message: 'Facturas vencidas - cobrar urgente' },
   { area: 'A3', name: 'dso_high', condition: (val) => val > 45, threshold: 45, agent: 'carlos', severity: 'high', message: 'DSO alto - cashflow en riesgo' },
   { area: 'A5', name: 'nps_low', condition: (val) => val < 30, threshold: 30, agent: 'marcos', severity: 'high', message: 'NPS bajo - satisfacción en riesgo' },
-  { area: 'A5', name: 'churn_risk', condition: (val) => val > 0.1, threshold: 0.1, agent: 'marcos', severity: 'critical', message: 'Churn alto - retención prioritaria' },
-  { area: 'A4', name: 'completion_low', condition: (val) => val < 0.7, threshold: 0.7, agent: 'paco', severity: 'medium', message: 'Tareas incompletas - revisar procesos' }
+  { area: 'A4', name: 'completion_low', condition: (val) => val < 70, threshold: 70, agent: 'paco', severity: 'medium', message: 'Tareas incompletas - revisar procesos' }
 ]
 
 export async function GET(req: Request) {
@@ -27,37 +26,33 @@ export async function GET(req: Request) {
     
     const triggered = []
     
-    // Get companies with active missions
-    const companies = await pool.query(`
-      SELECT DISTINCT m.company_id, c.name
-      FROM missions m
-      JOIN companies c ON c.id = m.company_id
-      WHERE m.status = 'active'
+    // Get companies with health_scores
+    const scores = await pool.query(`
+      SELECT hs.company_id, c.name as company, hs.area, hs.health_score
+      FROM health_scores hs
+      JOIN companies c ON c.id = hs.company_id
     `)
     
-    for (const company of companies.rows) {
-      const cid = company.company_id
-      
-      // Check health scores for this company
-      const scores = await pool.query(`
-        SELECT area, health_score FROM health_scores 
-        WHERE company_id = $1
-      `, [cid])
-      
-      // Check for triggers
+    // Group by company
+    const byCompany = {}
+    for (const row of scores.rows) {
+      if (!byCompany[row.company_id]) byCompany[row.company_id] = { name: row.company, scores: [] }
+      byCompany[row.company_id].scores.push({ area: row.area, score: row.health_score })
+    }
+    
+    for (const [cid, data] of Object.entries(byCompany)) {
       for (const trigger of TRIGGERS) {
-        const score = scores.rows.find(s => s.area === trigger.area)
+        const score = data.scores.find(s => s.area === trigger.area)
         if (!score) continue
         
-        const value = score.health_score
-        if (trigger.condition(value)) {
+        if (trigger.condition(score.score)) {
           // Check if not already triggered recently
           const existing = await pool.query(`
             SELECT id FROM proactive_triggers 
             WHERE company_id = $1 AND trigger_name = $2 
             AND status = 'active' 
             AND created_at > NOW() - INTERVAL '24 hours'
-          `, [cid, trigger.name])
+          `, [String(cid), trigger.name])
           
           if (existing.rows.length === 0) {
             // Create trigger
@@ -66,20 +61,20 @@ export async function GET(req: Request) {
               VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW())
             `, [
               require('crypto').randomUUID(),
-              cid,
+              String(cid),
               trigger.area,
               trigger.name,
               JSON.stringify({ threshold: trigger.threshold }),
-              JSON.stringify({ current: value, message: trigger.message })
+              JSON.stringify({ current: score.score, message: trigger.message })
             ])
             
-            // Create task for agent
+            // Create task
             await pool.query(`
               INSERT INTO mission_tasks (id, company_id, agent_id, area, task_name, priority, status, health_trigger, created_at)
               VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, NOW())
             `, [
               require('crypto').randomUUID(),
-              cid,
+              String(cid),
               trigger.agent,
               trigger.area,
               trigger.message,
@@ -88,10 +83,9 @@ export async function GET(req: Request) {
             ])
             
             triggered.push({
-              company: company.name,
+              company: data.name,
               trigger: trigger.name,
               agent: trigger.agent,
-              severity: trigger.severity,
               message: trigger.message
             })
           }
@@ -108,7 +102,6 @@ export async function GET(req: Request) {
     }, { status: 200, headers })
     
   } catch (err) {
-    console.error('Proactive error:', err)
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers })
   }
 }
