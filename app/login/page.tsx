@@ -104,9 +104,25 @@ export default function Login() {
         {tab === 'magic' && !magicSent && (
           <div style={{ textAlign: 'center', padding: '1rem 0' }}>
             <p style={{ fontSize: '0.88rem', color: C.muted, marginBottom: '1rem' }}>Recibirás un enlace mágico en tu email.</p>
-            <form onSubmit={(e) => { e.preventDefault(); setMagicSent(true) }} style={{ display: 'flex', gap: '0.5rem' }}>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setLoading(true)
+              try {
+                const res = await fetch('/api/auth-magic', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email: magicEmail }),
+                })
+                const data = await res.json()
+                if (data.sent) setMagicSent(true)
+                else setError(data.error || 'Error enviando enlace')
+              } catch (e) {
+                setError('Error de conexión')
+              }
+              setLoading(false)
+            }} style={{ display: 'flex', gap: '0.5rem' }}>
               <input type="email" value={magicEmail} onChange={e => setMagicEmail(e.target.value)} placeholder="tu@email.com" style={{ flex: 1, padding: '0.75rem 1rem', background: C.cream, border: '1.5px solid', borderColor: C.pastel, borderRadius: 10, fontSize: '0.92rem' }} />
-              <button type="submit" style={{ padding: '0.75rem 1.25rem', background: C.yellow, border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', color: C.dark }}>Enviar</button>
+              <button type="submit" disabled={loading} style={{ padding: '0.75rem 1.25rem', background: loading ? C.pastel : C.yellow, border: 'none', borderRadius: 10, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', color: C.dark }}>Enviar</button>
             </form>
           </div>
         )}
