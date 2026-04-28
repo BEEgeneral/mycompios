@@ -52,7 +52,7 @@ export async function GET(req: Request) {
       
       // Get client count
       const clientResult = await pool.query(
-        'SELECT COUNT(*) as cnt FROM clients WHERE company_id = $1',
+        'SELECT COUNT(*) as cnt FROM fin_clients WHERE company_id = $1',
         [cid]
       )
       const clientCount = parseInt(clientResult.rows[0]?.cnt || 0)
