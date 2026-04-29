@@ -51,7 +51,7 @@ export default function Dashboard() {
         const active = data.missions?.find((m: Mission) => m.status === 'active')
         if (active) {
           setMission(active)
-          const tasksRes = await fetch(`/api/tasks?mission_id=${active.id}`)
+          const tasksRes = await fetch(`/api/tasks?company_id=${companyId}`)
           if (tasksRes.ok) {
             const tasksData = await tasksRes.json()
             setTasks(tasksData.tasks || [])
