@@ -111,11 +111,11 @@ export default function Dashboard() {
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
         {/* GREETING */}
         <div style={{ marginBottom: '28px' }}>
-          <h1 style={{ fontSize: '26px', fontWeight: 600, color: C.dark, marginBottom: '6px' }}>
-            {greeting}, {user?.name?.split(' ')[0]}
+          <h1 style={{ fontSize: '24px', fontWeight: 600, color: C.dark, marginBottom: '4px' }}>
+            ¡Hola, {user?.name?.split(' ')[0]}! 👋
           </h1>
           <p style={{ color: C.muted, fontSize: '14px' }}>
-            {mission ? `Mission ${mission.mission_type} — Stage ${mission.stage}` : 'Tu equipo está preparado'}
+            {mission ? `Mission ${mission.mission_type} — Stage ${mission.stage}` : 'Tu equipo está preparado y trabajando para ti'}
           </p>
         </div>
 
