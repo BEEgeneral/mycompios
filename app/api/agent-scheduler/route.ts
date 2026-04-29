@@ -251,7 +251,7 @@ export async function GET(req: Request) {
         (SELECT COUNT(*)::int FROM mission_tasks WHERE mission_id = m.id) as task_count,
         (SELECT COUNT(*)::int FROM mission_tasks WHERE mission_id = m.id AND status = 'completed') as completed_count
       FROM missions m
-      JOIN companies c ON c.id::text = m.company_id
+      JOIN companies c ON c.id = m.company_id
       WHERE m.status = 'active'
       ORDER BY m.started_at DESC
       LIMIT 20
@@ -271,7 +271,7 @@ export async function GET(req: Request) {
     const heartbeats = await pool.query(`
       SELECT ah.*, c.name as company
       FROM agent_heartbeats ah
-      JOIN companies c ON c.id::text = ah.company_id
+      JOIN companies c ON c.id = ah.company_id
       ORDER BY ah.last_run DESC
       LIMIT 20
     `)
