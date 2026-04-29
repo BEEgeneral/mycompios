@@ -4,6 +4,14 @@
     {
       "path": "/api/cron/daily-summary",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/autonomous-loop",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-research",
+      "schedule": "0 * * * *"
     }
   ]
 }
