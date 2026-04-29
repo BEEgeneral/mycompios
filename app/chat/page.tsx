@@ -182,12 +182,15 @@ export default function ChatPage() {
 
       {/* MAIN CHAT */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', minWidth: 0 }}>
-        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding: '14px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: C.muted, padding: '4px' }}>☰</button>
-          <span style={{ fontSize: '18px' }}>🎯</span>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '15px', color: C.dark }}>Paco</div>
-            <div style={{ fontSize: '12px', color: C.green }}>● En línea</div>
+          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: C.muted, textDecoration: 'none', fontSize: '14px', marginLeft: '8px' }}>← Dashboard</a>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>🎯</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '15px', color: C.dark }}>Paco</div>
+              <div style={{ fontSize: '12px', color: C.green }}>● En línea</div>
+            </div>
           </div>
         </div>
 
