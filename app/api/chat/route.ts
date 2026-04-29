@@ -1,15 +1,14 @@
-// CHAT - Chat with agents (Paco, Lucía, Carlos)
+// CHAT - Chat with agents with real task context
 import { NextResponse } from 'next/server'
 
 function getDbPool() {
   const { Pool } = require('pg')
   return new Pool({
     host: process.env.NEON_HOST,
-    port: 5432,
     database: process.env.NEON_DB,
     user: process.env.NEON_USER,
     password: process.env.NEON_PASSWORD,
-    ssl: { rejectUnauthorized: false },
+    ssl: true,
     max: 1,
   })
 }
@@ -24,42 +23,59 @@ const AGENTS = {
   paco: {
     name: 'Paco',
     role: 'Director de operaciones',
-    system: `Eres Paco, el director de operaciones de MyCompi. 
-Tu trabajo es coordinar el equipo, supervisar tareas y asegurarte de que todo funcione smoothly.
-Tienes acceso a: tareas pendientes, estado de onboarding, clientes.
-Sé proactivo - si ves algo que necesita atención, dilo.
-Responde de forma directa y clara, en español.`
+    emoji: '🎯'
   },
   lucia: {
-    name: 'Lucía', 
+    name: 'Lucía',
     role: 'Agente de ventas',
-    system: `Eres Lucía, la agente de ventas de MyCompi.
-Tu trabajo es ayudar al cliente a aumentar sus ventas y leads.
-Analiza oportunidades, sugiere estrategias, haz follow-ups.
-Sé amable pero profesional. Responde en español.`
+    emoji: '💼'
   },
   carlos: {
     name: 'Carlos',
-    role: 'Agente financiero', 
-    system: `Eres Carlos, el agente financiero de MyCompi.
-Ayudas con: facturas, cobros, pagos, gastos, análisis financiero.
-Sé preciso con los números. Responde en español.`
+    role: 'Agente financiero',
+    emoji: '💰'
   }
 }
 
-async function callLLM(messages, agent) {
+async function callLLM(messages) {
   const res = await fetch(LLM_CONFIG.minimax.url, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${LLM_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      model: LLM_CONFIG.minimax.model, 
-      messages: [{ role: 'system', content: agent.system }, ...messages], 
+    body: JSON.stringify({
+      model: LLM_CONFIG.minimax.model,
+      messages,
       max_tokens: 800
     })
   })
   if (!res.ok) throw new Error(`LLM error: ${res.status}`)
   const data = await res.json()
   return data?.choices?.[0]?.message?.content || ''
+}
+
+function buildSystemPrompt(agentId: string, tasks: any[], companyName: string) {
+  const agent = AGENTS[agentId] || AGENTS.paco
+
+  let taskContext = ''
+  if (tasks.length > 0) {
+    const taskList = tasks.map(t => `- [${t.status}] ${t.task_name} (prioridad: ${t.priority})`).join('\n')
+    taskContext = `\n\nTAREAS DE TU MISIÓN:\n${taskList}`
+  } else {
+    taskContext = '\n\nNo tienes tareas asignadas pendientes.'
+  }
+
+  return `Eres ${agent.name}, ${agent.role} de MyCompi para ${companyName}.
+Tu trabajo es coordinar el equipo, supervisar tareas y dar resultados concretos.
+Cuando el usuario te pida algo que esté en tus tareas,.confirmalo y márcalo como completado.
+
+COMPORTAMIENTO:
+- Sé directo y conciso
+- Si completas algo en el chat, di "TAREA:[id] COMPLETADA" para actualizarla
+- Reporta progreso de las tareas activo
+- Si el usuario pregunta por algo fuera de tu rol, redirige al agente correcto${taskContext}
+
+TUS HERRAMIENTAS:
+- Puedes marcar tareas como completadas diciendo "TAREA:[id] COMPLETADA"
+- Si detectas un problema, créalo como nueva tarea con "NUEVA TAREA:[nombre]"`
 }
 
 export async function POST(req) {
@@ -77,23 +93,17 @@ export async function POST(req) {
   try {
     const authHeader = req.headers.get('Authorization')
     const token = authHeader?.replace('Bearer ', '')
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Token requerido' }, { status: 401, headers })
     }
 
-    const { agent_id, agent, message } = await req.json()
-
-    if (!message) {
-      return NextResponse.json({ error: 'Mensaje requerido' }, { status: 400, headers })
-    }
-
-    // Support both agent_id and agent (legacy)
-    const selectedAgent = agent_id || agent || 'paco'
+    const { agent_id, message } = await req.json()
+    const selectedAgent = agent_id || 'paco'
 
     const pool = getDbPool()
 
-    // Check session
+    // Get user + company
     const sessionResult = await pool.query(
       'SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()',
       [token]
@@ -101,7 +111,7 @@ export async function POST(req) {
 
     if (sessionResult.rows.length === 0) {
       await pool.end()
-      return NextResponse.json({ error: 'Sesion invalida' }, { status: 401, headers })
+      return NextResponse.json({ error: 'Sesión inválida' }, { status: 401, headers })
     }
 
     const userResult = await pool.query(
@@ -116,53 +126,45 @@ export async function POST(req) {
 
     const companyId = userResult.rows[0].company_id
 
-    // Check trial/usage
-    const trialResult = await pool.query(
-      'SELECT * FROM trial_status WHERE company_id = $1',
+    // Get company name
+    const companyResult = await pool.query(
+      'SELECT name FROM companies WHERE id = $1',
       [companyId]
     )
+    const companyName = companyResult.rows[0]?.name || 'tu empresa'
 
-    if (trialResult.rows.length > 0) {
-      const trial = trialResult.rows[0]
-      
-      // Check if trial expired
-      if (trial.trial_ends_at && new Date(trial.trial_ends_at) < new Date()) {
-        await pool.end()
-        return NextResponse.json({ 
-          error: 'Trial expirado',
-          reason: 'trial_expired',
-          trial_ends_at: trial.trial_ends_at
-        }, { status: 403, headers })
-      }
+    // Get active mission tasks for this agent
+    const tasksResult = await pool.query(`
+      SELECT mt.id, mt.task_name, mt.agent_id, mt.area, mt.priority, mt.status, mt.created_at
+      FROM mission_tasks mt
+      JOIN missions m ON m.id = mt.mission_id
+      WHERE mt.company_id = $1 AND mt.agent_id = $2 AND mt.status != 'completed'
+      ORDER BY mt.priority DESC
+      LIMIT 5
+    `, [companyId, selectedAgent])
 
-      // Check daily limit
-      const DAILY_LIMIT = 50
-      if (trial.messages_used_today >= DAILY_LIMIT) {
-        await pool.end()
-        return NextResponse.json({ 
-          error: 'Limite diario alcanzado',
-          reason: 'daily_limit',
-          messages_used_today: trial.messages_used_today,
-          limit: DAILY_LIMIT
-        }, { status: 403, headers })
-      }
+    const tasks = tasksResult.rows
 
-      // Increment usage
-      await pool.query(
-        'UPDATE trial_status SET messages_used_today = messages_used_today + 1 WHERE company_id = $1',
-        [companyId]
-      )
-    }
-
-    // Get agent config
-    const agentConfig = AGENTS[selectedAgent] || AGENTS.paco
+    // Build system prompt with real context
+    const systemPrompt = buildSystemPrompt(selectedAgent, tasks, companyName)
 
     // Call LLM
     const response = await callLLM([
+      { role: 'system', content: systemPrompt },
       { role: 'user', content: message }
-    ], agentConfig)
+    ])
 
-    // Save conversation to learning
+    // Handle task completion commands in response
+    const completionMatches = response.matchAll(/TAREA:([a-f0-9-]+) COMPLETADA/g)
+    for (const match of completionMatches) {
+      const taskId = match[1]
+      await pool.query(
+        `UPDATE mission_tasks SET status = 'completed', completed_at = NOW() WHERE id = $1`,
+        [taskId]
+      )
+    }
+
+    // Save conversation
     await pool.query(
       `INSERT INTO learning_interactions (company_id, agent_id, user_message, agent_response, created_at)
        VALUES ($1, $2, $3, $4, NOW())`,
@@ -173,18 +175,14 @@ export async function POST(req) {
 
     return NextResponse.json({
       success: true,
-      agent: agentConfig.name,
+      agent: AGENTS[selectedAgent]?.name || 'Paco',
       response,
-      usage: {
-        messages_used_today: trialResult.rows[0]?.messages_used_today + 1 || 1
-      }
+      tasks_active: tasks.length,
+      tasks_preview: tasks.slice(0, 3).map(t => ({ id: t.id, name: t.task_name, status: t.status }))
     }, { status: 200, headers })
 
   } catch (err) {
     console.error('Chat error:', err)
-    return NextResponse.json({ 
-      success: false,
-      error: err.message 
-    }, { status: 500, headers })
+    return NextResponse.json({ success: false, error: err.message }, { status: 500, headers })
   }
 }

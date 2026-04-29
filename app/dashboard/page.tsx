@@ -3,37 +3,26 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-const C = { dark: '#2D3261', yellow: '#FFD054', cream: '#FCF9F1', pastel: '#D1E0F3', muted: '#9CA3AF', white: '#FFFFFF', red: '#DC2626', green: '#22C55E', blue: '#3B82F6' }
-
-// Tareas pilares que TODOS los equipos hacen tras onboarding
-const PILAR_TASKS = [
-  { id: 'pilar_1', emoji: '📊', title: 'Revisión semanal de métricas', desc: 'Cada Compi revisa sus KPIs y ajusta prioridades', agent: 'Pelayo', cadence: 'Cada lunes' },
-  { id: 'pilar_2', emoji: '💼', title: 'Seguimiento de pipeline comercial', desc: 'Lucía analiza leads, conversión y prepara propuestas', agent: 'Lucía', cadence: 'Cada 48h' },
-  { id: 'pilar_3', emoji: '🔍', title: 'Auditoría financiera mensual', desc: 'Carlos revisa facturas, cobros y cash-flow', agent: 'Carlos', cadence: 'Cada mes' },
-]
+const C = { dark: '#0D0D0D', darkGray: '#1F1F1F', muted: '#6B6B6B', lightGray: '#E5E5E5', cream: '#F5F5F5', white: '#FFFFFF', green: '#10A37F', red: '#EF4444', yellow: '#F59E0B' }
 
 interface UserData { id: string; name: string; email: string; company_id: string; company_name: string }
-interface OnboardingData { completed: boolean; empresa_nombre: string; empresa_sector: string; empresa_web: string; current_step: number }
-interface TrialData { has_trial: boolean; trial_ends_at: string; days_left: number }
-interface MissionTask { id: string; task_name: string; agent_id: string; area: string; priority: number; status: string; created_at: string }
-interface Mission { id: string; mission_type: string; stage: string; status: string; objectives: string }
+interface MissionTask { id: string; task_name: string; agent_id: string; priority: number; status: string }
+interface Mission { id: string; mission_type: string; stage: string; status: string }
 
 export default function Dashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserData | null>(null)
-  const [onboarding, setOnboarding] = useState<OnboardingData | null>(null)
-  const [trial, setTrial] = useState<TrialData | null>(null)
   const [tasks, setTasks] = useState<MissionTask[]>([])
   const [mission, setMission] = useState<Mission | null>(null)
 
   useEffect(() => {
     const token = sessionStorage.getItem('mc_token')
     if (!token) { router.push('/login'); return }
-    fetchUserStatus(token)
+    fetchUserAndData(token)
   }, [])
 
-  const fetchUserStatus = async (token: string) => {
+  const fetchUserAndData = async (token: string) => {
     try {
       const res = await fetch('/api/user-status', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -41,21 +30,16 @@ export default function Dashboard() {
       if (res.ok) {
         const data = await res.json()
         setUser(data.user)
-        setOnboarding(data.onboarding)
-        setTrial(data.trial)
         if (data.user) {
           sessionStorage.setItem('mc_user', JSON.stringify(data.user))
-          // Fetch active mission for this company
-          fetchMissions(data.user.company_id)
+          fetchMissionAndTasks(data.user.company_id)
         }
       }
-    } catch (e) {
-      console.error('User status error:', e)
-    }
+    } catch (e) { console.error(e) }
     setLoading(false)
   }
 
-  const fetchMissions = async (companyId: string) => {
+  const fetchMissionAndTasks = async (companyId: string) => {
     try {
       const res = await fetch(`/api/missions?company_id=${companyId}`)
       if (res.ok) {
@@ -63,25 +47,14 @@ export default function Dashboard() {
         const active = data.missions?.find((m: Mission) => m.status === 'active')
         if (active) {
           setMission(active)
-          // Fetch tasks for this mission
-          fetchTasks(active.id)
+          const tasksRes = await fetch(`/api/tasks?mission_id=${active.id}`)
+          if (tasksRes.ok) {
+            const tasksData = await tasksRes.json()
+            setTasks(tasksData.tasks || [])
+          }
         }
       }
-    } catch (e) {
-      console.error('Missions error:', e)
-    }
-  }
-
-  const fetchTasks = async (missionId: string) => {
-    try {
-      const res = await fetch(`/api/tasks?mission_id=${missionId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setTasks(data.tasks || [])
-      }
-    } catch (e) {
-      console.error('Tasks error:', e)
-    }
+    } catch (e) { console.error(e) }
   }
 
   const handleLogout = () => {
@@ -90,164 +63,139 @@ export default function Dashboard() {
     router.push('/login')
   }
 
-  const handleOnboardingSubmit = async () => {
-    const token = sessionStorage.getItem('mc_token')
-    const onboardingForm = { empresa_nombre: '', empresa_sector: '', empresa_web: '', empresa_empleados: '', objetivos: '', objetivos_detalles: '' }
-    try {
-      await fetch('/api/onboarding-complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(onboardingForm)
-      })
-    } catch (e) {
-      console.error('Onboarding error:', e)
-    }
-    router.push('/dashboard')
-  }
+  const priorityColor = (p: number) => p >= 90 ? C.red : p >= 75 ? C.yellow : C.muted
+  const statusColor = (s: string) => s === 'completed' ? C.green : s === 'running' ? C.yellow : C.muted
+  const agentEmoji = (id: string) => ({ paco: '🎯', lucia: '💼', carlos: '💰', marcos: '🔧', daniel: '📈', pelayo: '📊' }[id] || '🤖')
 
-  // Priority badge color
-  const priorityColor = (p: number) => {
-    if (p >= 90) return C.red
-    if (p >= 75) return C.yellow
-    return C.blue
-  }
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: C.white, fontFamily: 'system-ui' }}>
+      <div style={{ color: C.muted }}>Cargando...</div>
+    </div>
+  )
 
-  // Agent emoji
-  const agentEmoji = (id: string) => {
-    const map: Record<string, string> = { pelayo: '📊', lucia: '💼', marcos: '🔧', paco: '🎯', carlos: '💰', daniel: '📈', elena: '📋' }
-    return map[id] || '🤖'
-  }
-
-  if (loading) {
-    return (
-      <div style={{ fontFamily: 'Poppins', background: C.cream, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 40, height: 40, border: `3px solid ${C.pastel}`, borderTopColor: C.dark, borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 1rem' }} />
-          <p style={{ color: C.muted }}>Cargando...</p>
-        </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
-  }
-
-  // MAIN DASHBOARD (after onboarding)
   return (
-    <div style={{ fontFamily: 'Poppins', background: C.cream, minHeight: '100vh' }}>
-      <style>{`* { margin: 0; padding: 0; box-sizing: border-box; }`}</style>
-
+    <div style={{ minHeight: '100vh', background: C.cream, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* HEADER */}
-      <header style={{ background: C.dark, padding: '0.75rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 50 }}>
-        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: C.white }}>
-          <span style={{ color: C.yellow }}>My</span>Compi
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ color: C.pastel, fontSize: '0.85rem' }}>Hola, {user?.name || 'Usuario'}</span>
-          <Link href="/chat" style={{ background: C.yellow, color: C.dark, padding: '0.5rem 1rem', borderRadius: 9999, fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>💬 Hablar con Paco</Link>
-          <button onClick={handleLogout} style={{ background: 'transparent', border: `1px solid ${C.pastel}`, color: C.pastel, padding: '0.4rem 0.8rem', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Salir</button>
+      <header style={{ background: C.white, borderBottom: `1px solid ${C.lightGray}`, padding: '0' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: '18px', fontWeight: 700, color: C.dark }}>My</span>
+            <span style={{ fontSize: '18px', fontWeight: 700, color: C.green }}>Compi</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ fontSize: '14px', color: C.muted }}>{user?.name}</span>
+            <button onClick={handleLogout} style={{ background: 'none', border: 'none', fontSize: '13px', color: C.muted, cursor: 'pointer' }}>Salir</button>
+          </div>
         </div>
       </header>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1.5rem 1rem' }}>
-        {/* TRIAL BANNER */}
-        {trial && trial.has_trial && (
-          <div style={{ background: trial.days_left <= 1 ? C.red : C.dark, borderRadius: 12, padding: '1rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <p style={{ color: C.white, fontWeight: 700, fontSize: '1rem' }}>Trial: {trial.days_left} días restantes</p>
-              <p style={{ color: C.pastel, fontSize: '0.85rem' }}>Accede a todos los Compis sin límite</p>
-            </div>
-            <Link href="/registro" style={{ background: C.yellow, color: C.dark, padding: '0.6rem 1.25rem', borderRadius: 9999, fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>Activar plan →</Link>
-          </div>
-        )}
-
-        {/* TU EQUIPO */}
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>Tu equipo de Compis</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          {[
-            { id: 'paco', nombre: 'Paco', area: 'Orquestador', color: '#FFF3F3', emoji: '🎯' },
-            { id: 'pelayo', nombre: 'Pelayo', area: 'Dirección', color: '#F5F0FF', emoji: '📊' },
-            { id: 'lucia', nombre: 'Lucía', area: 'Ventas', color: '#E8F4FD', emoji: '💼' },
-            { id: 'marcos', nombre: 'Marcos', area: 'Soporte', color: '#F0FDF4', emoji: '🔧' },
-            { id: 'daniel', nombre: 'Daniel', area: 'Analítica', color: '#FEF9E7', emoji: '📈' },
-          ].map(comp => (
-            <div key={comp.id} style={{ background: comp.color, borderRadius: 16, padding: '1.25rem', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{comp.emoji}</div>
-              <div style={{ fontWeight: 800, fontSize: '1rem', color: C.dark }}>{comp.nombre}</div>
-              <div style={{ fontSize: '0.8rem', color: C.muted, fontWeight: 500 }}>{comp.area}</div>
-              <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', width: 8, height: 8, borderRadius: '50%', background: C.green }} />
-            </div>
-          ))}
+      {/* MAIN CONTENT */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+        {/* GREETING */}
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 600, color: C.dark, marginBottom: '8px' }}>
+            {new Date().getHours() < 12 ? 'Buenos días' : new Date().getHours() < 18 ? 'Buenas tardes' : 'Buenas noches'}, {user?.name?.split(' ')[0]}
+          </h1>
+          <p style={{ color: C.muted, fontSize: '15px' }}>
+            {mission ? `Mission ${mission.mission_type} activa — Stage ${mission.stage}` : 'Tu equipo está preparado'}
+          </p>
         </div>
 
-        {/* TAREAS PILARES */}
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>🏛️ Tareas pilares de tu equipo</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          {PILAR_TASKS.map(task => (
-            <div key={task.id} style={{ background: C.white, borderRadius: 16, padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>{task.emoji}</span>
-                <div>
-                  <div style={{ fontWeight: 800, color: C.dark, fontSize: '0.95rem' }}>{task.title}</div>
-                  <div style={{ fontSize: '0.8rem', color: C.muted, marginTop: '0.25rem' }}>{task.desc}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-                <span style={{ background: C.pastel, color: C.dark, padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>{task.agent}</span>
-                <span style={{ background: C.cream, color: C.muted, padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem' }}>{task.cadence}</span>
-              </div>
+        {/* TASKS GRID */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+          {/* EN MARCHA */}
+          <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.lightGray}`, padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.yellow }} />
+              <span style={{ fontSize: '13px', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>En marcha</span>
             </div>
-          ))}
+            {tasks.filter(t => t.status !== 'completed').length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {tasks.filter(t => t.status !== 'completed').slice(0, 4).map(task => (
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <span style={{ fontSize: '16px', marginTop: '2px' }}>{agentEmoji(task.agent_id)}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 500, color: C.dark, lineHeight: 1.4 }}>{task.task_name}</div>
+                      <div style={{ fontSize: '12px', color: C.muted, marginTop: '2px' }}>{task.agent_id} · P{task.priority}</div>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: priorityColor(task.priority), background: priorityColor(task.priority) + '15', padding: '2px 8px', borderRadius: 9999 }}>
+                      {task.priority}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: C.muted, fontSize: '14px' }}>Sin tareas activas</div>
+            )}
+          </div>
+
+          {/* COMPLETADAS */}
+          <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.lightGray}`, padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.green }} />
+              <span style={{ fontSize: '13px', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completadas</span>
+            </div>
+            {tasks.filter(t => t.status === 'completed').length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {tasks.filter(t => t.status === 'completed').slice(0, 4).map(task => (
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', opacity: 0.6 }}>
+                    <span style={{ fontSize: '16px', marginTop: '2px' }}>✅</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 500, color: C.dark, lineHeight: 1.4, textDecoration: 'line-through' }}>{task.task_name}</div>
+                      <div style={{ fontSize: '12px', color: C.muted, marginTop: '2px' }}>{task.agent_id}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: C.muted, fontSize: '14px' }}>Sin tareas completadas</div>
+            )}
+          </div>
+
+          {/* TU EQUIPO */}
+          <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.lightGray}`, padding: '20px' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tu equipo</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              {[
+                { id: 'paco', name: 'Paco', role: 'Director', emoji: '🎯' },
+                { id: 'lucia', name: 'Lucía', role: 'Ventas', emoji: '💼' },
+                { id: 'carlos', name: 'Carlos', role: 'Finanzas', emoji: '💰' },
+              ].map(agent => (
+                <div key={agent.id} style={{ textAlign: 'center', padding: '12px 8px', background: C.cream, borderRadius: 10 }}>
+                  <div style={{ fontSize: '24px', marginBottom: '4px' }}>{agent.emoji}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: C.dark }}>{agent.name}</div>
+                  <div style={{ fontSize: '11px', color: C.muted }}>{agent.role}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* TAREAS EN PROGRESO */}
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>📋 En marcha</h2>
-        {tasks.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            {tasks.filter((t) => t.status !== 'completed').slice(0, 3).map((task) => (
-              <div key={task.id} style={{ background: C.white, borderRadius: 16, padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', borderLeft: `4px solid ${priorityColor(task.priority)}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <div style={{ fontWeight: 800, color: C.dark, fontSize: '0.95rem', flex: 1 }}>{task.task_name}</div>
-                  <span style={{ fontSize: '1.2rem' }}>{agentEmoji(task.agent_id)}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-                  <span style={{ background: C.pastel, color: C.dark, padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>{task.agent_id}</span>
-                  <span style={{ background: priorityColor(task.priority) + '20', color: priorityColor(task.priority), padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>P{task.priority}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ background: C.white, borderRadius: 16, padding: '2rem', textAlign: 'center', marginBottom: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🚀</div>
-            <div style={{ fontWeight: 800, color: C.dark, marginBottom: '0.5rem' }}>Mission en marcha</div>
-            <div style={{ color: C.muted, fontSize: '0.9rem' }}>Los Compis están analizando tu negocio...</div>
-          </div>
-        )}
-
-        {/* TAREAS COMPLETADAS */}
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>✅ Completadas</h2>
-        {tasks.filter((t) => t.status === 'completed').length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            {tasks.filter((t) => t.status === 'completed').slice(0, 3).map((task) => (
-              <div key={task.id} style={{ background: C.white, borderRadius: 16, padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', borderLeft: `4px solid ${C.green}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <div style={{ fontWeight: 800, color: C.dark, fontSize: '0.95rem', flex: 1 }}>{task.task_name}</div>
-                  <span style={{ fontSize: '1.2rem' }}>{agentEmoji(task.agent_id)}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-                  <span style={{ background: '#DCFCE7', color: C.green, padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>{task.agent_id}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ background: C.white, borderRadius: 16, padding: '2rem', textAlign: 'center', marginBottom: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <div style={{ color: C.muted, fontSize: '0.9rem' }}>Sin tareas completadas aún</div>
-          </div>
-        )}
-
-        {/* ACCESO RÁPIDO */}
-        {/* SOLO BOTÓN PACO */}
+        {/* QUICK ACTIONS */}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '80px' }}>
+          <Link href="/chat" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: C.dark, color: C.white, padding: '10px 20px', borderRadius: 9999, fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
+            💬 Hablar con Paco
+          </Link>
+          <Link href="/clients" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: C.white, color: C.dark, padding: '10px 20px', borderRadius: 9999, fontSize: '14px', fontWeight: 600, textDecoration: 'none', border: `1px solid ${C.lightGray}` }}>
+            👥 Clientes
+          </Link>
+        </div>
       </div>
+
+      {/* FLOATING PACO BUTTON */}
+      <Link href="/chat" style={{
+        position: 'fixed', bottom: '24px', right: '24px',
+        background: C.dark, color: C.white,
+        width: '56px', height: '56px', borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '24px', textDecoration: 'none',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+        zIndex: 999
+      }}>
+        🎯
+      </Link>
     </div>
   )
 }
