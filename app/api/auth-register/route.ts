@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { email, password, name, company, sector, vision } = await req.json()
+    const { email, password, name, company, sector, vision, website } = await req.json()
 
     if (!email || !password || !name || !company) {
       return NextResponse.json(
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     await pool.query(
       `INSERT INTO companies (id, name, email, plan, trial_expires_at, api_key, created_at, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [companyId, company, email.toLowerCase(), 'trial', trialExpiresAt, apiKey, now, JSON.stringify({ sector: sector || 'general', vision: vision || '' })]
+      [companyId, company, email.toLowerCase(), 'trial', trialExpiresAt, apiKey, now, JSON.stringify({ sector: sector || 'general', vision: vision || '', website: website || '' })]
     )
 
     // Hash password
