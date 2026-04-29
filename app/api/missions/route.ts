@@ -22,7 +22,7 @@ export async function GET(req: Request) {
         (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id) as task_count,
         (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id AND status = 'completed') as completed_count
       FROM missions m
-      JOIN companies c ON c.id = m.company_id
+      JOIN companies c ON c.id::text = m.company_id
       WHERE m.status = 'active'
       ORDER BY m.started_at DESC
       LIMIT 20
