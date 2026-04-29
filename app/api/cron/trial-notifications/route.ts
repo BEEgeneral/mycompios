@@ -76,12 +76,12 @@ export async function GET(req) {
       WHERE t.churned = false
         AND t.has_trial = true
         AND t.onboarding_completed = true
-        AND t.trial_expires_at <= NOW() + INTERVAL '2 days'
+        AND t.trial_ends_at <= NOW() + INTERVAL '2 days'
         AND t.trial_expiry_email_sent = false
     `)
 
     for (const trial of trialsResult.rows) {
-      const expiresAt = new Date(trial.trial_expires_at)
+      const expiresAt = new Date(trial.trial_ends_at)
       const daysLeft = Math.floor((expiresAt.getTime() - now.getTime()) / 86400000)
       const isExpired = expiresAt < now
 
