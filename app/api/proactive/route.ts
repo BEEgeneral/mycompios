@@ -40,7 +40,7 @@ export async function GET() {
     // Check triggers
     for (const [companyId, scoreList] of Object.entries(byCompany)) {
       for (const t of TRIGGERS) {
-        const score = scoreList.find(s => s.area === t.area)
+        const score = (scoreList as any).find(s => s.area === t.area)
         if (!score) continue
         if (!t.cond(score.health_score)) continue
         
