@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/trial-notifications",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/daily-summary",
+      "schedule": "0 8 * * *"
     }
   ]
 }

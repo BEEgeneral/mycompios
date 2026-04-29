@@ -142,6 +142,7 @@ export default function Dashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span style={{ color: C.pastel, fontSize: '0.85rem' }}>Hola, {user?.name || 'Usuario'}</span>
+          <Link href="/chat" style={{ background: C.yellow, color: C.dark, padding: '0.5rem 1rem', borderRadius: 9999, fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>💬 Hablar con Paco</Link>
           <button onClick={handleLogout} style={{ background: 'transparent', border: `1px solid ${C.pastel}`, color: C.pastel, padding: '0.4rem 0.8rem', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Salir</button>
         </div>
       </header>
@@ -162,7 +163,7 @@ export default function Dashboard() {
         <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>Tu equipo de Compis</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           {[
-            { id: 'paco', nombre: 'Paco', area: 'Trial', color: '#FFF3F3', emoji: '🎯' },
+            { id: 'paco', nombre: 'Paco', area: 'Orquestador', color: '#FFF3F3', emoji: '🎯' },
             { id: 'pelayo', nombre: 'Pelayo', area: 'Dirección', color: '#F5F0FF', emoji: '📊' },
             { id: 'lucia', nombre: 'Lucía', area: 'Ventas', color: '#E8F4FD', emoji: '💼' },
             { id: 'marcos', nombre: 'Marcos', area: 'Soporte', color: '#F0FDF4', emoji: '🔧' },
@@ -197,11 +198,11 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* TAREAS ACTIVAS ACTUALMENTE */}
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>⚡ Tareas que están haciendo ahora</h2>
+        {/* TAREAS EN PROGRESO */}
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>📋 En marcha</h2>
         {tasks.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            {tasks.slice(0, 3).map((task) => (
+            {tasks.filter((t) => t.status !== 'completed').slice(0, 3).map((task) => (
               <div key={task.id} style={{ background: C.white, borderRadius: 16, padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', borderLeft: `4px solid ${priorityColor(task.priority)}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <div style={{ fontWeight: 800, color: C.dark, fontSize: '0.95rem', flex: 1 }}>{task.task_name}</div>
@@ -209,12 +210,7 @@ export default function Dashboard() {
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
                   <span style={{ background: C.pastel, color: C.dark, padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>{task.agent_id}</span>
-                  <span style={{ background: task.status === 'pending' ? '#FEF3C7' : C.pastel, color: task.status === 'pending' ? '#92400E' : C.dark, padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem' }}>
-                    {task.status === 'pending' ? '⏳ Pendiente' : task.status === 'running' ? '⚙️ En curso' : '✅ Completada'}
-                  </span>
-                  <span style={{ background: priorityColor(task.priority) + '20', color: priorityColor(task.priority), padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>
-                    P{task.priority}
-                  </span>
+                  <span style={{ background: priorityColor(task.priority) + '20', color: priorityColor(task.priority), padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>P{task.priority}</span>
                 </div>
               </div>
             ))}
@@ -223,28 +219,34 @@ export default function Dashboard() {
           <div style={{ background: C.white, borderRadius: 16, padding: '2rem', textAlign: 'center', marginBottom: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🚀</div>
             <div style={{ fontWeight: 800, color: C.dark, marginBottom: '0.5rem' }}>Mission en marcha</div>
-            <div style={{ color: C.muted, fontSize: '0.9rem' }}>
-              {mission ? 'Los Compis están analizando tu negocio...' : 'Completa el onboarding para activar tu equipo'}
-            </div>
+            <div style={{ color: C.muted, fontSize: '0.9rem' }}>Los Compis están analizando tu negocio...</div>
+          </div>
+        )}
+
+        {/* TAREAS COMPLETADAS */}
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>✅ Completadas</h2>
+        {tasks.filter((t) => t.status === 'completed').length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            {tasks.filter((t) => t.status === 'completed').slice(0, 3).map((task) => (
+              <div key={task.id} style={{ background: C.white, borderRadius: 16, padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', borderLeft: `4px solid ${C.green}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ fontWeight: 800, color: C.dark, fontSize: '0.95rem', flex: 1 }}>{task.task_name}</div>
+                  <span style={{ fontSize: '1.2rem' }}>{agentEmoji(task.agent_id)}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                  <span style={{ background: '#DCFCE7', color: C.green, padding: '0.25rem 0.6rem', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700 }}>{task.agent_id}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ background: C.white, borderRadius: 16, padding: '2rem', textAlign: 'center', marginBottom: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <div style={{ color: C.muted, fontSize: '0.9rem' }}>Sin tareas completadas aún</div>
           </div>
         )}
 
         {/* ACCESO RÁPIDO */}
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: C.dark, marginBottom: '1rem' }}>Acceso rápido</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
-          {[
-            { label: 'Hablar con Paco', href: '/chat', color: C.dark },
-            { label: 'Ver clientes', href: '/clients', color: C.blue },
-            { label: 'Crear factura', href: '/invoices', color: C.green },
-            { label: 'Pipeline', href: '/pipeline', color: C.yellow },
-            { label: 'Reportes', href: '/reports', color: C.dark },
-            { label: 'Equipo', href: '/team', color: C.dark },
-          ].map(link => (
-            <Link key={link.label} href={link.href} style={{ background: link.color, color: link.color === C.yellow ? C.dark : C.white, padding: '1rem', borderRadius: 12, fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', textAlign: 'center' }}>
-              {link.label}
-            </Link>
-          ))}
-        </div>
+        {/* SOLO BOTÓN PACO */}
       </div>
     </div>
   )
