@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
-const C = { dark: '#0D0D0D', cream: '#F4F4F4', muted: '#8E8EA0', white: '#FFFFFF', border: '#E5E5E5', green: '#10A37F' }
+const C = { dark: '#0D0D0D', cream: '#F4F4F5', muted: '#8E8EA0', white: '#FFFFFF', border: '#E5E5E5', green: '#10A37F' }
 
 interface Message { role: 'user' | 'assistant'; content: string; agent?: string }
 interface Conversation { id: string; title: string; messages: Message[]; updated_at: string }
@@ -14,7 +14,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -120,16 +120,22 @@ export default function ChatPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'Poppins, system-ui, sans-serif', background: C.white }}>
-      <style>{`* { margin: 0; padding: 0; box-sizing: border-box; } body { background: ${C.white} }`}</style>
+      <style>{`
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @media (max-width: 640px) {
+          .sidebar { width: 100% !important; min-width: 100% !important; }
+          .msg-bubble { max-width: 90% !important; }
+        }
+        body { background: ${C.white} }
+      `}</style>
 
       {/* SIDEBAR */}
-      <div style={{
+      <div className="sidebar" style={{
         width: 260, minWidth: 260, background: '#F9F9F9', borderRight: `1px solid ${C.border}`,
         display: 'flex', flexDirection: 'column', height: '100vh',
         transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        position: 'fixed', zIndex: 100, transition: 'transform 0.2s'
+        position: 'fixed', zIndex: 100, transition: 'transform 0.2s', left: 0
       }}>
-        {/* SIDEBAR HEADER */}
         <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: '15px', color: C.dark }}>🎯 My Compi</span>
@@ -137,7 +143,6 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* NEW CHAT */}
         <div style={{ padding: '8px 16px' }}>
           <button onClick={newConversation} style={{
             width: '100%', padding: '10px 14px', background: 'transparent',
@@ -148,7 +153,6 @@ export default function ChatPage() {
           </button>
         </div>
 
-        {/* CONVERSATIONS LIST */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
           {conversations.map(conv => (
             <button key={conv.id} onClick={() => selectConversation(conv.id)} style={{
@@ -163,31 +167,36 @@ export default function ChatPage() {
           ))}
         </div>
 
-        {/* SIDEBAR FOOTER */}
         <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}` }}>
           <a href="/dashboard" style={{ display: 'block', padding: '8px 12px', fontSize: '13px', color: C.muted, textDecoration: 'none' }}>← Dashboard</a>
         </div>
       </div>
 
+      {/* OVERLAY */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.3)', zIndex: 99, display: 'none'
+        }} className="sidebar-overlay" />
+      )}
+
       {/* MAIN CHAT */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', minWidth: 0 }}>
-        {/* CHAT HEADER */}
-        <div style={{ padding: '14px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: C.muted }}>☰</button>
+        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: C.muted, padding: '4px' }}>☰</button>
           <span style={{ fontSize: '18px' }}>🎯</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '15px', color: C.dark }}>Paco — Director de operaciones</div>
+            <div style={{ fontWeight: 600, fontSize: '15px', color: C.dark }}>Paco</div>
             <div style={{ fontSize: '12px', color: C.green }}>● En línea</div>
           </div>
         </div>
 
-        {/* MESSAGES AREA */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', padding: '24px 24px 16px' }}>
+          <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', padding: '24px 16px 16px' }}>
             {messages.length === 0 && (
               <div style={{ textAlign: 'center', paddingTop: '60px' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
-                <h2 style={{ fontSize: '28px', fontWeight: 500, color: C.dark, marginBottom: '8px' }}>Cuando quieras.</h2>
+                <h2 style={{ fontSize: '24px', fontWeight: 500, color: C.dark, marginBottom: '8px' }}>Cuando quieras.</h2>
                 <p style={{ color: C.muted, fontSize: '15px', maxWidth: 400, margin: '0 auto' }}>
                   Cuéntame qué necesitas y coordinaré a tu equipo de Compis para ayudarte.
                 </p>
@@ -200,16 +209,14 @@ export default function ChatPage() {
                 marginBottom: '24px'
               }}>
                 {msg.role === 'user' ? (
-                  // USER BUBBLE
-                  <div style={{
+                  <div className="msg-bubble" style={{
                     background: C.cream, borderRadius: 18, padding: '10px 16px',
                     maxWidth: '80%', fontSize: '15px', lineHeight: 1.6, color: C.dark
                   }}>
                     {msg.content}
                   </div>
                 ) : (
-                  // ASSISTANT MESSAGE (no bubble)
-                  <div style={{ maxWidth: '80%', fontSize: '15px', lineHeight: 1.7, color: C.dark }}>
+                  <div className="msg-bubble" style={{ maxWidth: '80%', fontSize: '15px', lineHeight: 1.7, color: C.dark }}>
                     {msg.content}
                     <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                       <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: C.muted }}>Copy</button>
@@ -223,10 +230,7 @@ export default function ChatPage() {
               <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', gap: '4px', padding: '12px' }}>
                   {[0, 1, 2].map(i => (
-                    <div key={i} style={{
-                      width: 8, height: 8, borderRadius: '50%', background: C.muted,
-                      animation: `bounce 1s ${i * 0.15}s infinite`
-                    }} />
+                    <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: C.muted, animation: `bounce 1s ${i * 0.15}s infinite` }} />
                   ))}
                 </div>
               </div>
@@ -236,8 +240,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* INPUT */}
-        <div style={{ padding: '12px 24px 24px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ padding: '12px 16px 24px', borderTop: `1px solid ${C.border}` }}>
           <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', position: 'relative' }}>
             <div style={{
               display: 'flex', alignItems: 'flex-end', background: C.cream,
@@ -256,17 +259,13 @@ export default function ChatPage() {
                   padding: '10px 0', maxHeight: 100, overflowY: 'auto'
                 }}
               />
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || loading}
-                style={{
-                  background: input.trim() && !loading ? C.dark : C.muted,
-                  color: C.white, border: 'none', borderRadius: 20,
-                  padding: '8px 18px', fontSize: '14px', fontWeight: 600,
-                  cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                  margin: '4px', whiteSpace: 'nowrap'
-                }}
-              >
+              <button onClick={sendMessage} disabled={!input.trim() || loading} style={{
+                background: input.trim() && !loading ? C.dark : C.muted,
+                color: C.white, border: 'none', borderRadius: 20,
+                padding: '8px 18px', fontSize: '14px', fontWeight: 600,
+                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                margin: '4px', whiteSpace: 'nowrap'
+              }}>
                 {loading ? '...' : 'Enviar'}
               </button>
             </div>
@@ -274,12 +273,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes bounce {
-          0%, 80%, 100% { transform: translateY(0); }
-          40% { transform: translateY(-6px); }
-        }
-      `}</style>
+      <style>{`@keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }`}</style>
     </div>
   )
 }
