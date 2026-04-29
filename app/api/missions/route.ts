@@ -1,10 +1,13 @@
-// MISSIONS - Get active missions
+// MISSIONS - Get missions
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
   
   try {
+    const { searchParams } = new URL(req.url)
+    const companyId = searchParams.get('company_id')
+    
     const { Pool } = require('pg')
     const pool = new Pool({
       host: process.env.NEON_HOST,
@@ -15,18 +18,32 @@ export async function GET(req: Request) {
       max: 1,
     })
     
-    // Get missions with task counts
-    const missions = await pool.query(`
-      SELECT m.id, m.company_id, m.mission_type, m.stage, m.status, m.started_at,
-        c.name as company_name,
-        (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id) as task_count,
-        (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id AND status = 'completed') as completed_count
-      FROM missions m
-      JOIN companies c ON c.id = m.company_id
-      ${companyId ? 'WHERE m.company_id = $1' : ''}
-      ORDER BY m.started_at DESC
-      LIMIT 20
-    `, companyId ? [companyId] : [])
+    let missions
+    if (companyId) {
+      missions = await pool.query(`
+        SELECT m.id, m.company_id, m.mission_type, m.stage, m.status, m.started_at,
+          c.name as company_name,
+          (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id) as task_count,
+          (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id AND status = 'completed') as completed_count
+        FROM missions m
+        JOIN companies c ON c.id = m.company_id
+        WHERE m.company_id = $1
+        ORDER BY m.started_at DESC
+        LIMIT 20
+      `, [companyId])
+    } else {
+      missions = await pool.query(`
+        SELECT m.id, m.company_id, m.mission_type, m.stage, m.status, m.started_at,
+          c.name as company_name,
+          (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id) as task_count,
+          (SELECT COUNT(*) FROM mission_tasks WHERE mission_id = m.id AND status = 'completed') as completed_count
+        FROM missions m
+        JOIN companies c ON c.id = m.company_id
+        WHERE m.status = 'active'
+        ORDER BY m.started_at DESC
+        LIMIT 20
+      `)
+    }
     
     await pool.end()
     
