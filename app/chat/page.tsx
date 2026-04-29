@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
-const C = { dark: '#2D3261', yellow: '#FFD054', cream: '#FCF9F1', pastel: '#D1E0F3', muted: '#9CA3AF', white: '#FFFFFF', green: '#22C55E', blue: '#3B82F6' }
+const C = { dark: '#0D0D0D', cream: '#F4F4F4', muted: '#8E8EA0', white: '#FFFFFF', border: '#E5E5E5', green: '#10A37F' }
 
 interface Message { role: 'user' | 'assistant'; content: string; agent?: string }
 interface Conversation { id: string; title: string; messages: Message[]; updated_at: string }
@@ -38,13 +38,7 @@ export default function ChatPage() {
         setMessages(convs[0].messages)
       }
     } else {
-      // Create first conversation
-      const first: Conversation = {
-        id: Date.now().toString(),
-        title: 'Nueva conversación',
-        messages: [],
-        updated_at: new Date().toISOString()
-      }
+      const first: Conversation = { id: Date.now().toString(), title: 'Nueva conversación', messages: [], updated_at: new Date().toISOString() }
       setConversations([first])
       setActiveId(first.id)
       localStorage.setItem('mc_conversations', JSON.stringify([first]))
@@ -58,20 +52,11 @@ export default function ChatPage() {
 
   const selectConversation = (id: string) => {
     const conv = conversations.find(c => c.id === id)
-    if (conv) {
-      setActiveId(id)
-      setMessages(conv.messages)
-      setSidebarOpen(false)
-    }
+    if (conv) { setActiveId(id); setMessages(conv.messages); setSidebarOpen(false) }
   }
 
   const newConversation = () => {
-    const conv: Conversation = {
-      id: Date.now().toString(),
-      title: 'Nueva conversación',
-      messages: [],
-      updated_at: new Date().toISOString()
-    }
+    const conv: Conversation = { id: Date.now().toString(), title: 'Nueva conversación', messages: [], updated_at: new Date().toISOString() }
     const updated = [conv, ...conversations]
     saveConversations(updated)
     setActiveId(conv.id)
@@ -79,11 +64,11 @@ export default function ChatPage() {
     setSidebarOpen(false)
   }
 
-  const updateConversation = (convId: string, newMessages: Message[], reply?: string) => {
+  const updateConversation = (convId: string, newMessages: Message[]) => {
     const updated = conversations.map(c => {
       if (c.id !== convId) return c
-      const title = c.messages.length === 0 && reply
-        ? reply.slice(0, 40) + (reply.length > 40 ? '...' : '')
+      const title = c.messages.length === 0 && newMessages.length > 1
+        ? newMessages[1]?.content?.slice(0, 40) + (newMessages[1]?.content?.length > 40 ? '...' : '')
         : c.title
       return { ...c, messages: newMessages, updated_at: new Date().toISOString(), title }
     })
@@ -104,15 +89,10 @@ export default function ChatPage() {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ agent_id: 'paco', message: input.trim() })
       })
-
       const data = await res.json()
-      
       if (data.error) {
         const errMsg: Message = { role: 'assistant', content: `Error: ${data.error}`, agent: 'paco' }
         setMessages([...newMessages, errMsg])
@@ -133,185 +113,163 @@ export default function ChatPage() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
   }
 
-  const formatTime = (iso: string) => {
-    const d = new Date(iso)
-    return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
-  }
-
-  const formatDate = (iso: string) => {
-    const d = new Date(iso)
-    const now = new Date()
-    const diff = now.getTime() - d.getTime()
-    if (diff < 86400000) return formatTime(iso)
-    if (diff < 172800000) return 'Ayer'
-    return d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
-  }
+  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div style={{ fontFamily: 'Poppins, system-ui, sans-serif', display: 'flex', height: '100vh', background: C.cream }}>
-      <style>{`* { margin: 0; padding: 0; box-sizing: border-box; }`}</style>
+    <div style={{ display: 'flex', height: '100vh', fontFamily: 'Poppins, system-ui, sans-serif', background: C.white }}>
+      <style>{`* { margin: 0; padding: 0; box-sizing: border-box; } body { background: ${C.white} }`}</style>
 
       {/* SIDEBAR */}
       <div style={{
-        width: 280,
-        background: C.white,
-        borderRight: `1px solid ${C.pastel}`,
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'transform 0.2s',
+        width: 260, minWidth: 260, background: '#F9F9F9', borderRight: `1px solid ${C.border}`,
+        display: 'flex', flexDirection: 'column', height: '100vh',
         transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        position: 'fixed',
-        height: '100vh',
-        zIndex: 100
+        position: 'fixed', zIndex: 100, transition: 'transform 0.2s'
       }}>
-        <div style={{ padding: '1rem', borderBottom: `1px solid ${C.pastel}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <span style={{ fontWeight: 800, color: C.dark, fontSize: '1rem' }}>My Compi</span>
-            <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+        {/* SIDEBAR HEADER */}
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, fontSize: '15px', color: C.dark }}>🎯 My Compi</span>
+            <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: C.muted }}>✕</button>
           </div>
+        </div>
+
+        {/* NEW CHAT */}
+        <div style={{ padding: '8px 16px' }}>
           <button onClick={newConversation} style={{
-            width: '100%', padding: '0.6rem', background: C.dark, color: C.white,
-            border: 'none', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer'
+            width: '100%', padding: '10px 14px', background: 'transparent',
+            border: `1px solid ${C.border}`, borderRadius: 8, fontSize: '13px', fontWeight: 500,
+            cursor: 'pointer', textAlign: 'left', color: C.dark
           }}>
             + Nueva conversación
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* CONVERSATIONS LIST */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
           {conversations.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => selectConversation(conv.id)}
-              style={{
-                width: '100%', padding: '0.75rem 1rem', background: conv.id === activeId ? C.pastel : 'transparent',
-                border: 'none', borderBottom: `1px solid ${C.cream}`, textAlign: 'left', cursor: 'pointer'
-              }}
-            >
-              <div style={{ fontWeight: conv.id === activeId ? 700 : 500, color: C.dark, fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+            <button key={conv.id} onClick={() => selectConversation(conv.id)} style={{
+              width: '100%', padding: '10px 12px', background: conv.id === activeId ? C.cream : 'transparent',
+              border: 'none', borderRadius: 8, textAlign: 'left', cursor: 'pointer', marginBottom: '4px'
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: conv.id === activeId ? 600 : 400, color: C.dark, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {conv.title || 'Nueva conversación'}
               </div>
-              <div style={{ fontSize: '0.7rem', color: C.muted }}>
-                {formatDate(conv.updated_at)}
-              </div>
+              <div style={{ fontSize: '12px', color: C.muted, marginTop: '2px' }}>{formatTime(conv.updated_at)}</div>
             </button>
           ))}
+        </div>
+
+        {/* SIDEBAR FOOTER */}
+        <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}` }}>
+          <a href="/dashboard" style={{ display: 'block', padding: '8px 12px', fontSize: '13px', color: C.muted, textDecoration: 'none' }}>← Dashboard</a>
         </div>
       </div>
 
-      {/* MAIN CHAT AREA */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        {/* HEADER */}
-        <div style={{ background: C.white, padding: '0.75rem 1rem', borderBottom: `1px solid ${C.pastel}`, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>☰</button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>🎯</span>
-            <div>
-              <div style={{ fontWeight: 700, color: C.dark, fontSize: '0.95rem' }}>Paco</div>
-              <div style={{ fontSize: '0.75rem', color: C.green }}>● En línea</div>
-            </div>
-          </div>
-          <div style={{ marginLeft: 'auto' }}>
-            <a href="/dashboard" style={{ color: C.muted, fontSize: '0.85rem', textDecoration: 'none' }}>← Dashboard</a>
+      {/* MAIN CHAT */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', minWidth: 0 }}>
+        {/* CHAT HEADER */}
+        <div style={{ padding: '14px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: C.muted }}>☰</button>
+          <span style={{ fontSize: '18px' }}>🎯</span>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '15px', color: C.dark }}>Paco — Director de operaciones</div>
+            <div style={{ fontSize: '12px', color: C.green }}>● En línea</div>
           </div>
         </div>
 
-        {/* MESSAGES */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 1rem' }}>
-          {messages.length === 0 && (
-            <div style={{ textAlign: 'center', paddingTop: '3rem' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎯</div>
-              <h2 style={{ color: C.dark, marginBottom: '0.5rem', fontSize: '1.2rem' }}>¡Hola! Soy Paco</h2>
-              <p style={{ color: C.muted, maxWidth: 400, margin: '0 auto' }}>
-                Cuéntame qué necesitas y coordinaré a tu equipo de Compis para ayudarte.
-              </p>
-            </div>
-          )}
-
-          {messages.map((msg, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              marginBottom: '1.5rem'
-            }}>
-              <div style={{
-                maxWidth: '70%',
-                background: msg.role === 'user' ? C.dark : C.white,
-                color: msg.role === 'user' ? C.white : C.dark,
-                padding: '0.85rem 1.25rem',
-                borderRadius: 16,
-                borderBottomRightRadius: msg.role === 'user' ? 4 : 16,
-                borderBottomLeftRadius: msg.role === 'user' ? 16 : 4,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                lineHeight: 1.6,
-                fontSize: '0.95rem',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {msg.content}
+        {/* MESSAGES AREA */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', padding: '24px 24px 16px' }}>
+            {messages.length === 0 && (
+              <div style={{ textAlign: 'center', paddingTop: '60px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
+                <h2 style={{ fontSize: '28px', fontWeight: 500, color: C.dark, marginBottom: '8px' }}>Cuando quieras.</h2>
+                <p style={{ color: C.muted, fontSize: '15px', maxWidth: 400, margin: '0 auto' }}>
+                  Cuéntame qué necesitas y coordinaré a tu equipo de Compis para ayudarte.
+                </p>
               </div>
-            </div>
-          ))}
+            )}
 
-          {loading && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.5rem' }}>
-              <div style={{ background: C.white, padding: '0.85rem 1.25rem', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.muted, animation: 'bounce 1s infinite' }} />
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.muted, animation: 'bounce 1s 0.1s infinite' }} />
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.muted, animation: 'bounce 1s 0.2s infinite' }} />
+            {messages.map((msg, i) => (
+              <div key={i} style={{
+                display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                marginBottom: '24px'
+              }}>
+                {msg.role === 'user' ? (
+                  // USER BUBBLE
+                  <div style={{
+                    background: C.cream, borderRadius: 18, padding: '10px 16px',
+                    maxWidth: '80%', fontSize: '15px', lineHeight: 1.6, color: C.dark
+                  }}>
+                    {msg.content}
+                  </div>
+                ) : (
+                  // ASSISTANT MESSAGE (no bubble)
+                  <div style={{ maxWidth: '80%', fontSize: '15px', lineHeight: 1.7, color: C.dark }}>
+                    {msg.content}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: C.muted }}>Copy</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {loading && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '4px', padding: '12px' }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: 8, height: 8, borderRadius: '50%', background: C.muted,
+                      animation: `bounce 1s ${i * 0.15}s infinite`
+                    }} />
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         {/* INPUT */}
-        <div style={{ padding: '1rem 1rem 1.5rem 1rem', background: C.white, borderTop: `1px solid ${C.pastel}` }}>
-          <div style={{ display: 'flex', gap: '0.75rem', maxWidth: 800, margin: '0 auto', alignItems: 'flex-end' }}>
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Escribe tu mensaje..."
-              rows={1}
-              style={{
-                flex: 1,
-                padding: '0.85rem 1rem',
-                background: C.cream,
-                border: `1.5px solid ${C.pastel}`,
-                borderRadius: 14,
-                fontSize: '0.95rem',
-                fontFamily: 'inherit',
-                resize: 'none',
-                outline: 'none',
-                maxHeight: 120,
-                overflowY: 'auto'
-              }}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || loading}
-              style={{
-                background: input.trim() && !loading ? C.dark : C.muted,
-                color: C.white,
-                border: 'none',
-                borderRadius: 12,
-                padding: '0.85rem 1.25rem',
-                fontWeight: 700,
-                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                fontSize: '0.9rem'
-              }}
-            >
-              {loading ? '...' : 'Enviar'}
-            </button>
+        <div style={{ padding: '12px 24px 24px', borderTop: `1px solid ${C.border}` }}>
+          <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', position: 'relative' }}>
+            <div style={{
+              display: 'flex', alignItems: 'flex-end', background: C.cream,
+              borderRadius: 24, padding: '4px 4px 4px 16px', border: `1px solid ${C.border}`
+            }}>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Escribe tu mensaje..."
+                rows={1}
+                style={{
+                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: '15px', fontFamily: 'inherit', resize: 'none',
+                  padding: '10px 0', maxHeight: 100, overflowY: 'auto'
+                }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || loading}
+                style={{
+                  background: input.trim() && !loading ? C.dark : C.muted,
+                  color: C.white, border: 'none', borderRadius: 20,
+                  padding: '8px 18px', fontSize: '14px', fontWeight: 600,
+                  cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                  margin: '4px', whiteSpace: 'nowrap'
+                }}
+              >
+                {loading ? '...' : 'Enviar'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
