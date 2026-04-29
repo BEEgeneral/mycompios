@@ -112,7 +112,7 @@ export default function Dashboard() {
         {/* GREETING */}
         <div style={{ marginBottom: '28px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 600, color: C.dark, marginBottom: '4px' }}>
-            ¡Hola, {user?.name?.split(' ')[0]}! 👋
+            ¡Hola, {user?.name?.split(' ')[0] || user?.company_name || 'CEO'}! 👋
           </h1>
           <p style={{ color: C.muted, fontSize: '14px' }}>
             {mission ? `Mission ${mission.mission_type} — Stage ${mission.stage}` : 'Tu equipo está preparado y trabajando para ti'}
