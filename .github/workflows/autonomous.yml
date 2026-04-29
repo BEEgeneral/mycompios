@@ -1,0 +1,14 @@
+name: Autonomous Loop
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  execute-tasks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute tasks
+        run: |
+          curl -s -X POST "https://mycompi.com/api/execute-tasks"
