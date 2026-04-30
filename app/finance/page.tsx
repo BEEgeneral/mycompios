@@ -112,13 +112,13 @@ export default function FinancePage() {
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, color: '#FFFFFF', fontSize: '1.75rem' }}>💰 Finance & Credits</h1>
+          <h1 style={{ margin: 0, color: '#1F2937', fontSize: '1.75rem' }}>💰 Finance & Credits</h1>
           <Link href="/dashboard" style={{ color: '#6B7280', textDecoration: 'none' }}>← Panel de Control</Link>
         </div>
 
         {/* Credits Section */}
         <div style={{ background: '#FFFFFF', borderRadius: 16, padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h2 style={{ color: '#FFFFFF', marginTop: 0 }}>Credits</h2>
+          <h2 style={{ color: '#1F2937', marginTop: 0 }}>Credits</h2>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
             <div style={{ textAlign: 'center', padding: '1rem', background: '#FCF9F1', borderRadius: 12 }}>
@@ -157,7 +157,7 @@ export default function FinancePage() {
 
         {/* Plan Info */}
         <div style={{ background: '#FFFFFF', borderRadius: 16, padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h2 style={{ color: '#FFFFFF', marginTop: 0 }}>Plan</h2>
+          <h2 style={{ color: '#1F2937', marginTop: 0 }}>Plan</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{
               padding: '0.5rem 1rem',
@@ -179,7 +179,7 @@ export default function FinancePage() {
 
         {/* Tasks Today */}
         <div style={{ background: '#FFFFFF', borderRadius: 16, padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h2 style={{ color: '#FFFFFF', marginTop: 0 }}>Tareas Hoy</h2>
+          <h2 style={{ color: '#1F2937', marginTop: 0 }}>Tareas Hoy</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
             <div style={{ textAlign: 'center', padding: '1rem', background: '#FCF9F1', borderRadius: 12 }}>
               <p style={{ color: '#6B7280', margin: 0 }}>Ejecutadas</p>
@@ -204,7 +204,7 @@ export default function FinancePage() {
 
         {/* Recent Agent Runs */}
         <div style={{ background: '#FFFFFF', borderRadius: 16, padding: '1.5rem' }}>
-          <h2 style={{ color: '#FFFFFF', marginTop: 0 }}>Consumo de Agentes</h2>
+          <h2 style={{ color: '#1F2937', marginTop: 0 }}>Consumo de Agentes</h2>
           {recentRuns.length === 0 ? (
             <p style={{ color: '#6B7280' }}>No hay ejecuciones registradas aún</p>
           ) : (

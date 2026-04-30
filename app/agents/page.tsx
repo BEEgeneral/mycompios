@@ -131,7 +131,7 @@ export default function AgentsPage() {
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, color: '#FFFFFF', fontSize: '1.75rem' }}>🤖 Agentes</h1>
+          <h1 style={{ margin: 0, color: '#1F2937', fontSize: '1.75rem' }}>🤖 Agentes</h1>
           <Link href="/dashboard" style={{ color: '#6B7280', textDecoration: 'none' }}>← Panel de Control</Link>
         </div>
 
@@ -170,7 +170,7 @@ export default function AgentsPage() {
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                         <span style={{ fontSize: '1.5rem' }}>{info.icon}</span>
-                        <h2 style={{ margin: 0, color: '#FFFFFF', fontSize: '1.25rem' }}>{info.name}</h2>
+                        <h2 style={{ margin: 0, color: '#1F2937', fontSize: '1.25rem' }}>{info.name}</h2>
                         <span style={{
                           padding: '0.25rem 0.75rem',
                           borderRadius: 20,
@@ -184,7 +184,7 @@ export default function AgentsPage() {
                       <p style={{ color: '#6B7280', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
                         {info.description}
                       </p>
-                      <div style={{ display: 'flex', gap: '2rem', fontSize: '0.85rem', color: '#666' }}>
+                      <div style={{ display: 'flex', gap: '2rem', fontSize: '0.85rem', color: '#4B5563' }}>
                         <span>
                           <strong style={{ color: '#6B7280' }}>Hoy:</strong> {status?.tasks_today || 0} tareas
                         </span>
