@@ -1,10 +1,11 @@
 /**
- * Memory Service - Memory management
+ * Memory Service - Polsia-style with ChromaDB vector search
  * Based on Polsia's app/services/memory_service.py
  */
 
 import { Pool } from 'pg'
 import { randomUUID } from 'crypto'
+import { getChromaDB, syncMemoriesToChroma, searchMemoriesSemantic } from '../vectordb/chroma'
 
 let pool: Pool | null = null
 
@@ -48,7 +49,7 @@ export interface CreateMemoryInput {
 }
 
 /**
- * Store memory entry
+ * Store memory entry (PostgreSQL + ChromaDB sync)
  */
 export async function storeMemory(input: CreateMemoryInput): Promise<MemoryEntry> {
   const db = getPool()
@@ -57,7 +58,7 @@ export async function storeMemory(input: CreateMemoryInput): Promise<MemoryEntry
   
   const result = await db.query(
     `INSERT INTO memory_entries (id, company_id, entry_type, title, content, tags, source, related_task_id, chroma_id, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
      RETURNING *`,
     [
       id,
@@ -72,11 +73,16 @@ export async function storeMemory(input: CreateMemoryInput): Promise<MemoryEntry
     ]
   )
   
+  // Sync to ChromaDB asynchronously
+  const memory: any = result.rows[0]
+  const chromaDB = getChromaDB()
+  chromaDB.addMemory(memory).catch(e => console.error('ChromaDB sync error:', e))
+  
   return result.rows[0]
 }
 
 /**
- * Search memories
+ * Search memories (ChromaDB vector search + PostgreSQL fallback)
  */
 export async function searchMemories(
   companyId: string,
@@ -86,6 +92,21 @@ export async function searchMemories(
 ): Promise<MemoryEntry[]> {
   const db = getPool()
   
+  // If query provided, use semantic search
+  if (query) {
+    const results = await searchMemoriesSemantic(db, companyId, query, limit)
+    if (results.length > 0) {
+      // Get full records from PostgreSQL
+      const ids = results.map(r => r.id)
+      const result = await db.query(
+        `SELECT * FROM memory_entries WHERE id = ANY($1)`,
+        [ids]
+      )
+      return result.rows
+    }
+  }
+  
+  // Fallback to PostgreSQL search
   let sql = 'SELECT * FROM memory_entries WHERE company_id = $1'
   const params: any[] = [companyId]
   let paramIndex = 2
@@ -146,6 +167,14 @@ export async function getRecentMemories(
 }
 
 /**
+ * Sync all memories to ChromaDB (batch operation)
+ */
+export async function syncAllToChroma(companyId: string): Promise<{ synced: number }> {
+  const db = getPool()
+  return syncMemoriesToChroma(db, companyId)
+}
+
+/**
  * Delete old memories (maintenance)
  */
 export async function cleanupOldMemories(
@@ -153,6 +182,25 @@ export async function cleanupOldMemories(
   daysOld = 90
 ): Promise<number> {
   const db = getPool()
+  
+  // Delete from ChromaDB first
+  const oldMemories = await db.query(
+    `SELECT id, chroma_id FROM memory_entries 
+     WHERE company_id = $1 
+     AND created_at < NOW() - INTERVAL '1 day' * $2
+     AND entry_type NOT IN ('fact', 'decision')
+     AND chroma_id IS NOT NULL`,
+    [companyId, daysOld]
+  )
+  
+  const chromaDB = getChromaDB()
+  for (const memory of oldMemories.rows) {
+    if (memory.chroma_id) {
+      await chromaDB.deleteMemory(companyId, memory.id).catch(e => console.error('ChromaDB delete error:', e))
+    }
+  }
+  
+  // Delete from PostgreSQL
   const result = await db.query(
     `DELETE FROM memory_entries 
      WHERE company_id = $1 
@@ -160,5 +208,34 @@ export async function cleanupOldMemories(
      AND entry_type NOT IN ('fact', 'decision')`,
     [companyId, daysOld]
   )
+  
   return result.rowCount || 0
+}
+
+/**
+ * Get context for agent (Polsia-style)
+ * Returns recent memories + facts + decisions
+ */
+export async function getAgentContext(
+  companyId: string,
+  limit = 20
+): Promise<string> {
+  const db = getPool()
+  
+  const result = await db.query(`
+    SELECT entry_type, content, created_at 
+    FROM memory_entries 
+    WHERE company_id = $1 
+    AND entry_type IN ('fact', 'decision', 'result', 'plan')
+    ORDER BY created_at DESC 
+    LIMIT $2
+  `, [companyId, limit])
+  
+  if (!result.rows.length) {
+    return 'No context available.'
+  }
+  
+  return result.rows
+    .map(r => `[${r.entry_type}] ${r.content}`)
+    .join('\n')
 }
