@@ -1,4 +1,3 @@
-// TASK PROPOSALS - Propose and approve tasks
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
@@ -22,12 +21,12 @@ export async function GET(req: Request) {
     await pool.end()
     return NextResponse.json({ proposals: proposals.rows }, { status: 200, headers })
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } })
   }
 }
 
 export async function POST(req: Request) {
-  const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type: 'application/json' }
+  const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
   try {
     const { company_id, task_name, description } = await req.json()
     const { Pool } = require('pg')
@@ -46,6 +45,6 @@ export async function POST(req: Request) {
     await pool.end()
     return NextResponse.json({ success: true }, { status: 200, headers })
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } })
   }
 }
