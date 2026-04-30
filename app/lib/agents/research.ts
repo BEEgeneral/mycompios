@@ -2,6 +2,7 @@
 // Inspired by Polsia's Competitor Research agent
 
 import { BaseAgent, AgentContext, AgentResult } from './base'
+import { searchCompetitors } from '../tavily'
 
 export class ResearchAgent extends BaseAgent {
   agentType = 'research'
@@ -18,7 +19,15 @@ Responde de forma concisa y accionable.`
   }
   
   async researchCompetitors(context: AgentContext, competitorName: string): Promise<string> {
-    // In production, this would call Tavily or similar
+    // Try Tavily for real web search first
+    if (process.env.TAVILY_API_KEY) {
+      const results = await searchCompetitors(`${competitorName} company business`)
+      if (results.length > 0) {
+        return results.map(r => `${r.title}: ${r.description}`).join('\n')
+      }
+    }
+    
+    // Fallback to LLM
     const prompt = `Investiga al competidor: ${competitorName}
 Contexto de la empresa: ${context.mission_statement}
 Empresa: ${context.company_name}

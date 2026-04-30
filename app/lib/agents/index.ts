@@ -7,6 +7,8 @@ import { researchAgent } from './research'
 import { salesAgent } from './sales'
 import { financeAgent } from './finance'
 import { codeAgent } from './code'
+import { runBusinessPlanning } from './business-planning'
+import { runAdsManagement } from './ads-management'
 
 // PACO - Main orchestrator agent (always available)
 class PacoAgent extends BaseAgent {
@@ -188,11 +190,12 @@ export const AGENT_MAP: Record<string, BaseAgent> = {
   code: codeAgent,
   social: socialAgent,
   support: supportAgent,
+  business_planning: { execute: runBusinessPlanning } as any,
+  ads_management: { execute: runAdsManagement } as any,
 }
 
 // Valid agent types - like Polsia's VALID_AGENT_TYPES
 export const VALID_AGENT_TYPES = Object.keys(AGENT_MAP)
-
 // Run agent for task - like Polsia's run_agent_for_task()
 export async function runAgentForTask(
   agentType: string,
