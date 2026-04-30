@@ -14,7 +14,18 @@ const C = {
   white: '#FFFFFF',
 }
 
-const PRICES = {
+type Plan = {
+  id: string
+  name: string
+  price: string
+  period: string
+  description: string
+  features: string[]
+  color: string
+  popular?: boolean
+}
+
+const PRICES: Record<string, Plan> = {
   pro: {
     id: 'price_1TRqZmFnOlGTfuoBoT8yTET3',
     name: 'Pro',
