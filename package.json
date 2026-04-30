@@ -8,6 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@hey-api/client-fetch": "^0.13.1",
+    "chromadb": "^3.4.3",
     "inngest": "^4.2.5",
     "next": "^14.2.0",
     "pg": "^8.11.0",
