@@ -2,13 +2,23 @@ name: Autonomous Loop
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # 8am UTC = 10am Berlin = start del día
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
-  execute-tasks:
+  autonomous-cycle:
     runs-on: ubuntu-latest
     steps:
-      - name: Execute tasks
+      - name: Autonomous Cycle
         run: |
-          curl -s -X POST "https://mycompi.com/api/execute-tasks"
+          echo "=== Autonomous Cycle $(date) ==="
+          
+          # 1. Get all companies with plan='pro'
+          # For each company:
+          #   a. Check if there are approved tasks pending
+          #   b. If yes: execute top task (debit credit)
+          #   c. If no: generate proposal
+          #   d. Log execution
+          
+          curl -s -X POST "https://www.mycompi.com/api/autonomous-cycle"
