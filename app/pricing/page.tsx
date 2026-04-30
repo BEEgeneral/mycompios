@@ -14,60 +14,38 @@ const C = {
   white: '#FFFFFF',
 }
 
-type Plan = {
-  id: string
-  name: string
-  price: string
-  period: string
-  description: string
-  features: string[]
-  color: string
-  popular?: boolean
-}
-
-const PRICES: Record<string, Plan> = {
-  starter: {
-    id: 'price_1TRqZmFnOlGTfuoBci5Z5bhV',
-    name: 'Starter',
-    price: '19',
-    period: 'mes',
-    description: 'Para negocios que empiezan',
-    features: [
-      'Landing profesional',
-      'Dashboard con métricas',
-      'Chat con tu AI',
-      '3 días trial gratis',
-    ],
-    color: C.muted,
-  },
+const PRICES = {
   pro: {
     id: 'price_1TRqZmFnOlGTfuoBoT8yTET3',
     name: 'Pro',
     price: '49',
     period: 'mes',
-    description: 'Para negocios que crecen',
+    description: 'El más popular para negocios que crecen',
     features: [
-      'Todo lo de Starter',
-      'Tareas autónomas',
+      'Tareas autónomas diarias',
+      '5 créditos de ejecución/mes',
       'Email diario de resumen',
-      'Acceso a todos los agentes',
-      'Research automático',
+      'Dashboard con métricas',
+      'Mission personalizada',
+      'Proposals con IA',
+      'Chat con tu AI (gratis)',
     ],
     color: C.yellow,
     popular: true,
   },
-  god: {
-    id: 'god',
+  autonomous: {
+    id: 'autonomous',
     name: 'Autonomous Mode',
-    price: 'Desde 19',
+    price: '19',
     period: '€/hora',
-    description: 'Ejecución continua',
+    description: 'Ejecución continua sin límites',
     features: [
       'Todo lo de Pro',
-      'AI trabaja 24/7 sin parar',
+      'AI trabaja 24/7 para ti',
+      'Sin límite de créditos',
       'Decisiones autónomas',
-      'Sin límite de tareas',
-      'Contacto directo con AI',
+      'Comunicación directa con AI',
+      'Ideal para proyectos grandes',
     ],
     color: C.green,
   },
@@ -83,9 +61,9 @@ export default function Pricing() {
   }, [])
 
   const handleSubscribe = async (priceId: string) => {
-    if (priceId === 'god') {
-      // Open chat to discuss Autonomous Mode
-      window.location.href = '/chat?god=1'
+    if (priceId === 'autonomous') {
+      // Redirect to contact/sales for Autonomous Mode
+      window.location.href = '/chat?autonomous=1'
       return
     }
 
@@ -129,16 +107,23 @@ export default function Pricing() {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '3rem 1.5rem' }}>
         {/* HERO */}
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 700, marginBottom: '0.75rem' }}>
             Tu equipo de IA, funcionando 24/7
           </h1>
           <p style={{ color: C.muted, fontSize: '1.1rem', maxWidth: 500, margin: '0 auto' }}>
-            Sin contratos, sin permanencia. Cancela cuando quieras.
+            Sin contratos, sin permanencia. Solo pagas por lo que necesitas.
+          </p>
+        </div>
+
+        {/* CHAT ALWAYS FREE */}
+        <div style={{ background: C.darkCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1.5rem', marginBottom: '2rem', textAlign: 'center' }}>
+          <p style={{ color: C.green, fontSize: '1rem', margin: 0 }}>
+            💬 <strong>Chat con tu AI es siempre gratis</strong> — con o sin plan activo
           </p>
         </div>
 
         {/* PLANS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
           {Object.entries(PRICES).map(([key, plan]) => (
             <div key={key} style={{
               background: C.darkCard,
@@ -166,7 +151,7 @@ export default function Pricing() {
 
               <div style={{ marginBottom: '1rem' }}>
                 <span style={{ fontSize: '0.8rem', color: plan.color, fontWeight: 600 }}>{plan.name}</span>
-                <div style={{ marginTop: '0.25rem' }}>
+                <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                   <span style={{ fontSize: '2.5rem', fontWeight: 700 }}>{plan.price}</span>
                   <span style={{ color: C.muted, fontSize: '0.9rem' }}>/{plan.period}</span>
                 </div>
@@ -187,7 +172,7 @@ export default function Pricing() {
                 disabled={loading === plan.id}
                 style={{
                   width: '100%',
-                  padding: '0.75rem',
+                  padding: '0.875rem',
                   borderRadius: 10,
                   background: plan.popular ? plan.color : 'transparent',
                   color: plan.popular ? C.dark : C.light,
@@ -195,19 +180,21 @@ export default function Pricing() {
                   fontWeight: 700,
                   cursor: loading === plan.id ? 'wait' : 'pointer',
                   opacity: loading === plan.id ? 0.6 : 1,
+                  fontSize: '0.95rem',
                 }}
               >
-                {loading === plan.id ? 'Cargando...' : user?.plan === key.toUpperCase() ? 'Plan activo' : 'Empezar →'}
+                {loading === plan.id ? 'Cargando...' : user?.plan?.toUpperCase() === key.toUpperCase() ? 'Plan activo' : 'Empezar →'}
               </button>
             </div>
           ))}
         </div>
 
-        {/* GOD MODE EXTRA */}
-        <div style={{ marginTop: '2rem', textAlign: 'center', padding: '1.5rem', background: C.darkCard, borderRadius: 12, border: `1px solid ${C.border}` }}>
-          <p style={{ color: C.muted, fontSize: '0.9rem', margin: 0 }}>
-            💡 <strong style={{ color: C.white }}>Autonomous Mode</strong> es para empresas que necesitan ejecución continua.
-            <Link href="/chat?god=1" style={{ color: C.yellow, marginLeft: 8 }}>Habla con tu AI →</Link>
+        {/* AUTONOMOUS MODE EXTRA INFO */}
+        <div style={{ marginTop: '2rem', padding: '1.5rem', background: C.darkCard, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <h3 style={{ color: C.green, fontSize: '1rem', marginBottom: '0.75rem' }}>⚡ Autonomous Mode</h3>
+          <p style={{ color: C.muted, fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+            Para empresas que necesitan ejecución continua. Tu AI trabaja sin parar mientras tú te enfocas en lo importante.
+            Packs disponibles: <strong style={{ color: C.white }}>1h, 6h, 24h, o 7 días</strong>.
           </p>
         </div>
 
