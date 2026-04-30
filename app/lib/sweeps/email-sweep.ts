@@ -37,8 +37,7 @@ export async function runEmailSweep(companyId?: string) {
       'vi su anuncio y quiero información de precios',
     ]
 
-    // Save to memory
-    const content = `Emails analyzed: ${mockEmails.length}\nEmail sweep completed successfully`
+    const content = `Email sweep completed. Analyzed ${mockEmails.length} emails.`
     await pool.query(
       `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -49,20 +48,6 @@ export async function runEmailSweep(companyId?: string) {
         content,
         ['email', 'sweep', 'automated'],
         'email_sweep'
-      ]
-    )
-
-    // Log activity
-    await pool.query(
-      `INSERT INTO activity_log (id, company_id, agent_type, action, summary, level)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        randomUUID(),
-        company.id,
-        'support',
-        'email_sweep_completed',
-        `Analyzed ${mockEmails.length} emails`,
-        'success'
       ]
     )
 

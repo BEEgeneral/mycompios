@@ -38,8 +38,7 @@ export async function runAdsSync(companyId?: string) {
       conversions: Math.floor(Math.random() * 20) + 1
     }
 
-    // Save to memory
-    const content = `Ads metrics: ${JSON.stringify(adMetrics)}\nAds sync completed successfully`
+    const content = `Ads sync completed. Metrics: ${JSON.stringify(adMetrics)}`
     await pool.query(
       `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -50,20 +49,6 @@ export async function runAdsSync(companyId?: string) {
         content,
         ['ads', 'sync', 'automated'],
         'ads_sync'
-      ]
-    )
-
-    // Log activity
-    await pool.query(
-      `INSERT INTO activity_log (id, company_id, agent_type, action, summary, level)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        randomUUID(),
-        company.id,
-        'finance',
-        'ads_sync_completed',
-        `Ads spend: ${adMetrics.spend.toFixed(2)}€`,
-        'success'
       ]
     )
 

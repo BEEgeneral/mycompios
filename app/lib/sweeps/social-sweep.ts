@@ -5,10 +5,6 @@
 import { Pool } from 'pg'
 import { randomUUID } from 'crypto'
 
-const LLM_API_KEY = process.env.LLM_API_KEY || ''
-const LLM_URL = 'https://api.minimax.io/v1/text/chatcompletion_v2'
-const LLM_MODEL = 'MiniMax-M2.7'
-
 function getPool() {
   return new Pool({
     host: process.env.NEON_HOST,
@@ -41,8 +37,7 @@ export async function runSocialSweep(companyId?: string) {
       `Alguien sabe si ${company.name} tiene promo?`,
     ]
 
-    // Save to memory
-    const content = `Mentions analyzed: ${mockMentions.length}\nSocial sweep completed successfully`
+    const content = `Social sweep completed. Analyzed ${mockMentions.length} mentions.`
     await pool.query(
       `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -53,20 +48,6 @@ export async function runSocialSweep(companyId?: string) {
         content,
         ['social', 'sweep', 'automated'],
         'social_sweep'
-      ]
-    )
-
-    // Log activity
-    await pool.query(
-      `INSERT INTO activity_log (id, company_id, agent_type, action, summary, level)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        randomUUID(),
-        company.id,
-        'social',
-        'social_sweep_completed',
-        `Analyzed ${mockMentions.length} mentions`,
-        'success'
       ]
     )
 
