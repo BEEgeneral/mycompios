@@ -13,7 +13,7 @@ const C = {
   red: '#DC2626'
 }
 
-export default function AgentPanel de Control() {
+export default function AgentDashboard() {
   const [agents, setAgents] = useState<any[]>([])
   const [missions, setMissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
