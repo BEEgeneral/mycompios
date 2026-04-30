@@ -1,32 +1,34 @@
-name: Deploy to InsForge
+name: Deploy
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
+    
     steps:
       - uses: actions/checkout@v4
       
-      - name: List files
-        run: ls -la
+      - name: Deploy to Vercel
+        uses: amondtech/vercel-action@v2
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
       
-      - name: Deploy to InsForge
-        env:
-          INSFORGE: ${{ secrets.INSFORGE }}
+      - name: Health check after deploy
         run: |
-          echo "Deploying with INSFORGE secret..."
-          if [ -z "$INSFORGE" ]; then
-            echo "INSFORGE secret not set"
-            exit 1
-          fi
-          npx --yes @insforge/cli deployments deploy . 2>&1 || echo "Deploy command finished"
+          sleep 10
+          curl -sf https://www.mycompi.com/api/health-check || exit 1
       
-      - name: Show next steps
+      - name: Notify success
         if: success()
-        run: |
-          echo "Deployment triggered. Check GitHub Actions for status."
-          echo "Frontend should be at: https://guuimyx3.insforge.site"
+        run: echo "Deploy successful - https://www.mycompi.com"
+      
+      - name: Notify failure
+        if: failure()
+        run: echo "Deploy failed - check Vercel dashboard"
