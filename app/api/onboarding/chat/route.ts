@@ -3,31 +3,13 @@ import { NextResponse } from 'next/server'
 // ONBOARDING CHAT - Conversational onboarding
 // Based on Polsia: 5 preguntas, generar mission + tasks
 
-type OnboardingState = {
-  step: number
-  answers: {
-    business?: string
-    audience?: string
-    current_state?: string
-    needs?: string
-    priority?: string
-  }
-  hasEnoughContext: boolean
-}
-
-const STATES = {
-  BUSINESS: 'business',
-  AUDIENCE: 'audience', 
-  CURRENT_STATE: 'current_state',
-  NEEDS: 'needs',
-  PRIORITY: 'priority',
-  COMPLETE: 'complete'
-}
-
-function getNextQuestion(step: number): string {
+function getNextQuestion(step: number): string | null {
   const questions = [
     '¿Qué estás construyendo? Cuéntame qué haces o qué quieres crear.',
-    '¿A quién va dirigido? ¿B2B, B2C, qué tipo de cliente?'
+    '¿A quién va dirigido? ¿B2B, B2C, qué tipo de cliente?',
+    '¿Qué tienes ahora mismo? ¿Landing, código, usuarios, nada?',
+    '¿Cuál es el problema principal que resuelves?',
+    'Si solo pudieras hacer UNA cosa esta semana, ¿cuál sería?'
   ]
   return questions[step] || null
 }
@@ -43,7 +25,6 @@ function generateInitialTasks(answers: any): any[] {
   const tasks = []
   const { business, current_state } = answers
   
-  // Primeros pasos siempre
   tasks.push({
     task_name: 'Research de mercado',
     description: `Investigar el mercado de ${business || 'tu sector'}: competidores, tendencias, oportunidades.`,
@@ -51,7 +32,7 @@ function generateInitialTasks(answers: any): any[] {
     priority: 90
   })
 
-  if (!current_state || current_state.includes('nada') || current_state.includes('empezando')) {
+  if (!current_state || current_state.includes('nada') || current_state.includes('nada hecho')) {
     tasks.push({
       task_name: 'Landing page inicial',
       description: 'Crear una landing page que comunique tu propuesta de valor.',
@@ -90,85 +71,79 @@ export async function POST(req: Request) {
       max: 1,
     })
 
-    // Get onboarding data
-    let onboardingResult = await pool.query(
-      'SELECT onboarding_data FROM onboarding_data WHERE company_id = $1 ORDER BY created_at DESC LIMIT 1',
+    // Get existing state
+    let stateResult = await pool.query(
+      'SELECT step, state FROM onboarding_chat WHERE company_id = $1',
       [company_id]
     )
 
-    let state: OnboardingState = {
-      step: 0,
-      answers: {},
-      hasEnoughContext: false
+    let step = 0
+    let answers: any = {}
+
+    if (stateResult.rows.length > 0) {
+      step = stateResult.rows[0].step || 0
+      try { answers = stateResult.rows[0].state || {} } catch(e) {}
     }
 
-    // Restore state if exists
-    if (onboardingResult.rows.length > 0 && onboardingResult.rows[0].onboarding_data) {
-      try {
-        state = JSON.parse(onboardingResult.rows[0].onboarding_data)
-      } catch (e) {}
-    }
-
-    const currentStep = clientStep !== undefined ? clientStep : state.step
+    // If client sends step, use it
+    if (clientStep !== undefined) step = clientStep
 
     // Si el usuario envía un mensaje, procesarlo
     if (message) {
-      // Guardar respuesta según el paso actual
-      switch (currentStep) {
+      switch (step) {
         case 0:
-          state.answers.business = message
-          state.step = 1
+          answers.business = message
+          step = 1
           break
         case 1:
-          state.answers.audience = message
-          state.step = 2
+          answers.audience = message
+          step = 2
           break
         case 2:
-          state.answers.current_state = message
-          state.step = 3
+          answers.current_state = message
+          step = 3
           break
         case 3:
-          state.answers.needs = message
-          state.step = 4
+          answers.needs = message
+          step = 4
           break
         case 4:
-          state.answers.priority = message
-          state.hasEnoughContext = true
-          state.step = 5
+          answers.priority = message
+          step = 5
           break
       }
 
       // Guardar estado
       await pool.query(
-        `INSERT INTO onboarding_data (company_id, onboarding_data, created_at)
-         VALUES ($1, $2, NOW())
-         ON CONFLICT (company_id) DO UPDATE SET onboarding_data = $2, created_at = NOW()`,
-        [company_id, JSON.stringify(state)]
+        `INSERT INTO onboarding_chat (company_id, step, state)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (company_id) DO UPDATE SET step = $2, state = $3, updated_at = NOW()`,
+        [company_id, step, JSON.stringify(answers)]
       )
     }
 
     await pool.end()
 
-    // Si tenemos suficiente contexto, generar mission y tasks
-    if (state.hasEnoughContext) {
-      const mission = generateMission(state.answers)
-      const tasks = generateInitialTasks(state.answers)
+    // Si tenemos suficiente contexto (5 respuestas), generar mission y tasks
+    if (step >= 5) {
+      const mission = generateMission(answers)
+      const tasks = generateInitialTasks(answers)
 
       return NextResponse.json({
         complete: true,
         mission,
         tasks,
-        answers: state.answers
+        answers
       }, { status: 200, headers })
     }
 
     // Obtener siguiente pregunta
-    const question = getNextQuestion(currentStep)
+    const question = getNextQuestion(step)
 
     return NextResponse.json({
-      step: currentStep,
+      step,
       question,
-      answers: state.answers,
+      answers,
       complete: false
     }, { status: 200, headers })
 
