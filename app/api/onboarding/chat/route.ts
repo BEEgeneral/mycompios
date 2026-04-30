@@ -74,7 +74,6 @@ async function researchWebsite(url: string): Promise<{ summary: string; title: s
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; MyCompi/1.0)',
       },
-      timeout: 10000,
     })
     
     if (!response.ok) {
