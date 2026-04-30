@@ -14,7 +14,18 @@ const C = {
   white: '#FFFFFF',
 }
 
-const PRICES = {
+type Plan = {
+  id: string
+  name: string
+  price: string
+  period: string
+  description: string
+  features: string[]
+  color: string
+  popular?: boolean
+}
+
+const PRICES: Record<string, Plan> = {
   starter: {
     id: 'price_1TRqZmFnOlGTfuoBci5Z5bhV',
     name: 'Starter',
@@ -178,7 +189,6 @@ export default function Pricing() {
                   width: '100%',
                   padding: '0.75rem',
                   borderRadius: 10,
-                  border: 'none',
                   background: plan.popular ? plan.color : 'transparent',
                   color: plan.popular ? C.dark : C.light,
                   border: plan.popular ? 'none' : `1px solid ${C.border}`,
