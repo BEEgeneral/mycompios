@@ -49,7 +49,17 @@ export async function POST(req) {
             [companyId]
           )
           
-          console.log('Company upgraded:', companyId)
+          // Record revenue snapshot
+          const amount = session.amount_total || 4900 // Default €49
+          const mrrCents = session.currency === 'eur' ? amount : amount * 1.1 // Convert to EUR if USD
+          
+          await pool.query(
+            `INSERT INTO revenue_snapshots (id, company_id, snapshot_date, mrr_cents, arr_cents, active_subscribers, churn_rate)
+             VALUES ($1, $2, NOW(), $3, $4, 1, 0) ON CONFLICT DO NOTHING`,
+            [require('crypto').randomUUID(), companyId, mrrCents, mrrCents * 12]
+          )
+          
+          console.log('Company upgraded:', companyId, 'MRR:', mrrCents, 'cents')
         }
         break
       }
@@ -60,6 +70,31 @@ export async function POST(req) {
           'UPDATE companies SET plan = cancelled WHERE stripe_customer_id = $1',
           [subscription.customer]
         )
+        
+        // Record churn - update last revenue snapshot
+        await pool.query(
+          `UPDATE revenue_snapshots SET churn_rate = 1.0 
+           WHERE company_id = (SELECT id FROM companies WHERE stripe_customer_id = $1)
+           AND snapshot_date = (SELECT MAX(snapshot_date) FROM revenue_snapshots WHERE company_id = (SELECT id FROM companies WHERE stripe_customer_id = $1))`,
+          [subscription.customer]
+        )
+        break
+      }
+      
+      case 'invoice.paid': {
+        // Track recurring payments
+        const invoice = event.data.object
+        const companyId = invoice.customer
+        
+        if (companyId && invoice.amount_paid) {
+          const amountCents = invoice.amount_paid
+          await pool.query(
+            `INSERT INTO revenue_snapshots (id, company_id, snapshot_date, mrr_cents, arr_cents, active_subscribers, churn_rate)
+             VALUES ($1, $2, NOW(), $3, $4, 1, 0)`,
+            [require('crypto').randomUUID(), companyId, amountCents, amountCents * 12]
+          )
+          console.log('Invoice paid recorded:', companyId, amountCents)
+        }
         break
       }
     }
