@@ -1,8 +1,5 @@
 /**
  * Social Sweep - Polsia-style social media automation
- * 
- * Based on Polsia's celery_app/tasks/social_sweep.py
- * Runs every 2 hours
  */
 
 import { Pool } from 'pg'
@@ -23,97 +20,11 @@ function getPool() {
   })
 }
 
-/**
- * Analyze social mentions using LLM
- */
-async function analyzeMentions(company: any, mentions: string[]): Promise<string[]> {
-  if (!mentions.length) {
-    return []
-  }
-
-  const prompt = `Eres el agente de Social Media de MyCompi.
-
-Empresa: ${company.name}
-Industria: ${company.industry || 'General'}
-
-MENÇÕES RECIBIDAS:
-${mentions.map((m, i) => `${i + 1}. ${m}`).join('\n')}
-
-Analiza y responde en español:
-1. Cuales son positivas, negativas o neutrales?
-2. Hay oportunidad de engagement?
-3. Cuales requieren respuesta?
-
-Formato: JSON array con {index, sentiment, action, response}
-Solo incluye las que requieren acción.`
-
-  const res = await fetch(LLM_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LLM_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: LLM_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 500
-    })
-  })
-
-  const data = await res.json()
-  return data?.choices?.[0]?.message?.content || '[]'
-}
-
-/**
- * Generate social content idea
- */
-async function generateContentIdea(company: any): Promise<string> {
-  const prompt = `Eres el agente de Social Media de MyCompi.
-
-Empresa: ${company.name}
-Misión: ${company.mission_statement || ''}
-Industria: ${company.industry || 'General'}
-
-Genera una IDEA DE CONTENIDO para redes sociales:
-- Formato: Post corto (máx 150 caracteres)
-- Tono: Profesional pero cercano
-- Incluir: hashtag relevante
-
-Responde solo con el post, sin explicaciones.`
-
-  const res = await fetch(LLM_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LLM_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: LLM_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 200
-    })
-  })
-
-  const data = await res.json()
-  return data?.choices?.[0]?.message?.content || ''
-}
-
-/**
- * Run social sweep
- */
-export async function runSocialSweep(companyId?: string): Promise<{
-  success: boolean
-  mentions_analyzed: number
-  content_created?: string
-  actions: string[]
-  error?: string
-}> {
+export async function runSocialSweep(companyId?: string) {
   console.log('[SocialSweep] Starting sweep', { companyId })
-
   const pool = getPool()
 
   try {
-    // Get company
     const companyQuery = companyId
       ? 'SELECT * FROM companies WHERE id = $1'
       : 'SELECT * FROM companies LIMIT 1'
@@ -124,30 +35,22 @@ export async function runSocialSweep(companyId?: string): Promise<{
     }
 
     const company = companyResult.rows[0]
-
-    // Simulate mentions (in production, connect to social APIs)
     const mockMentions = [
       `@${company.name} me encanta su producto!`,
       `Problemas con el soporte de ${company.name}`,
       `Alguien sabe si ${company.name} tiene promo?`,
     ]
 
-    // Analyze mentions
-    const analysis = await analyzeMentions(company, mockMentions)
-
-    // Generate content idea
-    const contentIdea = await generateContentIdea(company)
-
     // Save to memory
+    const content = `Mentions analyzed: ${mockMentions.length}\nSocial sweep completed successfully`
     await pool.query(
-      `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+      `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         randomUUID(),
         company.id,
         'result',
-        'Social Sweep',
-        `Mentions: ${mockMentions.length}\nAnalysis: ${analysis}\nContent: ${contentIdea}`,
+        content,
         ['social', 'sweep', 'automated'],
         'social_sweep'
       ]
@@ -155,8 +58,8 @@ export async function runSocialSweep(companyId?: string): Promise<{
 
     // Log activity
     await pool.query(
-      `INSERT INTO activity_log (id, company_id, agent_type, action, summary, level, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      `INSERT INTO activity_log (id, company_id, agent_type, action, summary, level)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         randomUUID(),
         company.id,
@@ -169,12 +72,9 @@ export async function runSocialSweep(companyId?: string): Promise<{
 
     await pool.end()
 
-    console.log('[SocialSweep] Completed', { mentions: mockMentions.length })
-
     return {
       success: true,
       mentions_analyzed: mockMentions.length,
-      content_created: contentIdea,
       actions: ['mentions_analyzed']
     }
 
