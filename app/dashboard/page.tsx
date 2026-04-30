@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 const C = {
-  dark: '#0D0D0D',
-  darkCard: '#1A1A1A',
-  border: '#2A2A2A',
-  muted: '#888',
+  cream: '#FCF9F1',
+  creamCard: '#FFFFFF',
+  border: '#E5E5E5',
+  muted: '#6B7280',
   light: '#E5E5E5',
   yellow: '#FFD054',
   green: '#10A37F',
@@ -176,7 +176,7 @@ export default function Dashboard() {
   }
 
   if (loading) return (
-    <div style={{ background: C.dark, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ background: C.cream, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: C.muted }}>Cargando...</div>
     </div>
   )
@@ -185,7 +185,7 @@ export default function Dashboard() {
   const pendingTasks = tasks.filter(t => t.status !== 'completed').length
 
   return (
-    <div style={{ background: C.dark, color: C.white, minHeight: '100vh', fontFamily: 'system-ui' }}>
+    <div style={{ background: C.cream, color: C.white, minHeight: '100vh', fontFamily: 'system-ui' }}>
       {/* HEADER */}
       <header style={{ borderBottom: `1px solid ${C.border}`, padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link href="/" style={{ textDecoration: 'none' }}>
@@ -201,7 +201,7 @@ export default function Dashboard() {
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem' }}>
         
         {/* MISSION */}
-        <div style={{ marginBottom: '2rem', padding: '1.5rem', background: C.darkCard, borderRadius: 12, border: `1px solid ${C.border}` }}>
+        <div style={{ marginBottom: '2rem', padding: '1.5rem', background: C.creamCard, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <div style={{ fontSize: '0.7rem', color: C.muted, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '0.5rem' }}>
             Mission
           </div>
@@ -217,15 +217,15 @@ export default function Dashboard() {
 
         {/* STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-          <div style={{ background: C.darkCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
+          <div style={{ background: C.creamCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: C.yellow }}>{credits.remaining}</div>
             <div style={{ fontSize: '0.7rem', color: C.muted, marginTop: '0.25rem' }}>CREDITS</div>
           </div>
-          <div style={{ background: C.darkCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
+          <div style={{ background: C.creamCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: C.green }}>{completedTasks}</div>
             <div style={{ fontSize: '0.7rem', color: C.muted, marginTop: '0.25rem' }}>COMPLETADAS</div>
           </div>
-          <div style={{ background: C.darkCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
+          <div style={{ background: C.creamCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: C.light }}>{pendingTasks}</div>
             <div style={{ fontSize: '0.7rem', color: C.muted, marginTop: '0.25rem' }}>EN PROGRESO</div>
           </div>
@@ -239,7 +239,7 @@ export default function Dashboard() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {proposals.filter(p => p.status === 'proposed').map(p => (
-                <div key={p.id} style={{ background: C.darkCard, border: `1px solid ${C.yellow}`, borderRadius: 12, padding: '1.25rem' }}>
+                <div key={p.id} style={{ background: C.creamCard, border: `1px solid ${C.yellow}`, borderRadius: 12, padding: '1.25rem' }}>
                   <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.5rem' }}>{p.task_name}</div>
                   {p.justification && (
                     <div style={{ fontSize: '0.8rem', color: C.muted, marginBottom: '0.75rem', lineHeight: 1.5 }}>
@@ -272,7 +272,7 @@ export default function Dashboard() {
             Tareas
           </div>
           {tasks.length === 0 ? (
-            <div style={{ padding: '2rem', background: C.darkCard, borderRadius: 12, border: `1px solid ${C.border}`, textAlign: 'center', color: C.muted }}>
+            <div style={{ padding: '2rem', background: C.creamCard, borderRadius: 12, border: `1px solid ${C.border}`, textAlign: 'center', color: C.muted }}>
               Sin tareas. Completa el onboarding para generar tu primera propuesta.
             </div>
           ) : (
@@ -280,7 +280,7 @@ export default function Dashboard() {
               {tasks.map(task => (
                 <div key={task.id} style={{ 
                   padding: '0.875rem 1rem', 
-                  background: C.darkCard, 
+                  background: C.creamCard, 
                   borderRadius: 10, 
                   borderLeft: `3px solid ${
                     task.status === 'completed' ? C.green : 
@@ -308,7 +308,7 @@ export default function Dashboard() {
           <Link href="/chat" style={{
             display: 'inline-block', 
             background: C.yellow, 
-            color: C.dark,
+            color: C.cream,
             padding: '0.875rem 2rem', 
             borderRadius: 9999, 
             fontWeight: 700,

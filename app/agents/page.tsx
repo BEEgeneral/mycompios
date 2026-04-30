@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 const C = {
-  dark: '#0D0D0D',
-  darkCard: '#1A1A1A',
-  border: '#2A2A2A',
-  muted: '#888',
+  dark: '#FCF9F1',
+  darkCard: '#FFFFFF',
+  border: '#E5E5E5',
+  muted: '#6B7280',
   light: '#E5E5E5',
   yellow: '#FFD054',
   green: '#10A37F',
@@ -127,12 +127,12 @@ export default function AgentsPage() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui', background: '#0D0D0D', minHeight: '100vh', padding: '2rem' }}>
+    <div style={{ fontFamily: 'system-ui', background: '#FCF9F1', minHeight: '100vh', padding: '2rem' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0, color: '#FFFFFF', fontSize: '1.75rem' }}>🤖 Agentes</h1>
-          <Link href="/dashboard" style={{ color: '#888', textDecoration: 'none' }}>← Panel de Control</Link>
+          <Link href="/dashboard" style={{ color: '#6B7280', textDecoration: 'none' }}>← Panel de Control</Link>
         </div>
 
         {/* Message */}
@@ -153,7 +153,7 @@ export default function AgentsPage() {
         {loading ? (
           <div style={{ display: 'grid', gap: '1rem' }}>
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ height: 120, background: '#1A1A1A', borderRadius: 12, animation: 'pulse 1.5s infinite' }} />
+              <div key={i} style={{ height: 120, background: '#FFFFFF', borderRadius: 12, animation: 'pulse 1.5s infinite' }} />
             ))}
           </div>
         ) : (
@@ -165,7 +165,7 @@ export default function AgentsPage() {
               const isTriggering = triggering === type
 
               return (
-                <div key={type} style={{ background: '#1A1A1A', borderRadius: 16, padding: '1.5rem', border: '1px solid #2A2A2A' }}>
+                <div key={type} style={{ background: '#FFFFFF', borderRadius: 16, padding: '1.5rem', border: '1px solid #2A2A2A' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
@@ -181,15 +181,15 @@ export default function AgentsPage() {
                           {isRunning ? '● Ejecutando' : '○ Idle'}
                         </span>
                       </div>
-                      <p style={{ color: '#888', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
+                      <p style={{ color: '#6B7280', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
                         {info.description}
                       </p>
                       <div style={{ display: 'flex', gap: '2rem', fontSize: '0.85rem', color: '#666' }}>
                         <span>
-                          <strong style={{ color: '#888' }}>Hoy:</strong> {status?.tasks_today || 0} tareas
+                          <strong style={{ color: '#6B7280' }}>Hoy:</strong> {status?.tasks_today || 0} tareas
                         </span>
                         <span>
-                          <strong style={{ color: '#888' }}>Última ejecución:</strong>{' '}
+                          <strong style={{ color: '#6B7280' }}>Última ejecución:</strong>{' '}
                           {status?.last_run_at 
                             ? new Date(status.last_run_at).toLocaleString('es-ES')
                             : 'Nunca'
@@ -202,8 +202,8 @@ export default function AgentsPage() {
                       disabled={isRunning || isTriggering}
                       style={{
                         padding: '0.75rem 1.5rem',
-                        background: isRunning || isTriggering ? '#2A2A2A' : '#FFD054',
-                        color: isRunning || isTriggering ? '#666' : '#0D0D0D',
+                        background: isRunning || isTriggering ? '#E5E5E5' : '#FFD054',
+                        color: isRunning || isTriggering ? '#666' : '#FCF9F1',
                         border: 'none',
                         borderRadius: 10,
                         fontWeight: 'bold',
@@ -222,8 +222,8 @@ export default function AgentsPage() {
         )}
 
         {/* Info Footer */}
-        <div style={{ marginTop: '2rem', padding: '1rem', background: '#1A1A1A', borderRadius: 12, border: '1px solid #2A2A2A' }}>
-          <p style={{ color: '#888', margin: 0, fontSize: '0.85rem', lineHeight: 1.5 }}>
+        <div style={{ marginTop: '2rem', padding: '1rem', background: '#FFFFFF', borderRadius: 12, border: '1px solid #2A2A2A' }}>
+          <p style={{ color: '#6B7280', margin: 0, fontSize: '0.85rem', lineHeight: 1.5 }}>
             💡 Los agentes se ejecutan automáticamente según tu plan. Usa "Ejecutar Ahora" para forzar una ejecución inmediata.
             Los credits se descontarán al iniciar la tarea.
           </p>
