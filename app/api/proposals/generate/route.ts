@@ -26,6 +26,30 @@ function getRejectedProposals(proposals: any[]): string[] {
   return proposals.filter(p => p.status === 'rejected').map(p => p.task_name)
 }
 
+function getDbPool() {
+  const { Pool } = require('pg')
+  return new Pool({
+    host: process.env.NEON_HOST,
+    database: process.env.NEON_DB,
+    user: process.env.NEON_USER,
+    password: process.env.NEON_PASSWORD,
+    ssl: true,
+    max: 1,
+  })
+}
+
+async function logActivity(pool: any, companyId: string, actionType: string, metadata: Record<string, any>) {
+  try {
+    await pool.query(
+      `INSERT INTO activity_log (id, company_id, action_type, metadata, created_at)
+       VALUES ($1, $2, $3, $4, NOW())`,
+      [require('crypto').randomUUID(), companyId, actionType, JSON.stringify(metadata)]
+    )
+  } catch (e) {
+    console.error('Error logging activity:', e)
+  }
+}
+
 function generateProposal(company: any, tasks: any[], proposals: any[], memory: any[]): any | null {
   const phase = getPhase(company)
   const completed = getCompletedTasks(tasks)
@@ -304,6 +328,14 @@ export async function POST(req: Request) {
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'proposed')`,
       [proposalId, company_id, proposal.task_name, proposal.description, proposal.justification, proposal.phase, proposal.priority]
     )
+
+    // Log activity
+    await logActivity(pool, company_id, 'proposal_generated', {
+      proposal_id: proposalId,
+      task_name: proposal.task_name,
+      phase: proposal.phase,
+      priority: proposal.priority,
+    })
 
     await pool.end()
 

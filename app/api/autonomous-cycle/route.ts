@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isMockMode } from '@/app/api/mock-mode/route'
 
 // AUTONOMOUS CYCLE - Daily execution respecting autonomy mode
 // Modes: 'manual' | 'semi' | 'auto'
@@ -9,26 +10,44 @@ const GUARANTEES = {
   NEVER_PUBLISH_WITHOUT_CONFIG: true,
 }
 
-export async function POST(req: Request) {
-  const headers = { 
-    'Access-Control-Allow-Origin': '*', 
-    'Content-Type': 'application/json' 
+function getDbPool() {
+  const { Pool } = require('pg')
+  return new Pool({
+    host: process.env.NEON_HOST,
+    database: process.env.NEON_DB,
+    user: process.env.NEON_USER,
+    password: process.env.NEON_PASSWORD,
+    ssl: true,
+    max: 1,
+  })
+}
+
+async function logActivity(pool: any, companyId: string, actionType: string, metadata: Record<string, any>) {
+  try {
+    await pool.query(
+      `INSERT INTO activity_log (id, company_id, action_type, metadata, created_at)
+       VALUES ($1, $2, $3, $4, NOW())`,
+      [require('crypto').randomUUID(), companyId, actionType, JSON.stringify(metadata)]
+    )
+  } catch (e) {
+    console.error('Error logging activity:', e)
   }
+}
+
+export async function POST(req: Request) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/json'
+  }
+  const mockMode = isMockMode()
 
   try {
-    const { Pool } = require('pg')
-    const pool = new Pool({
-      host: process.env.NEON_HOST,
-      database: process.env.NEON_DB,
-      user: process.env.NEON_USER,
-      password: process.env.NEON_PASSWORD,
-      ssl: true,
-      max: 1,
-    })
+    const pool = getDbPool()
 
     // Get all companies with plan='pro'
     const companies = await pool.query(
-      `SELECT id, name, mission_statement, current_phase, credits_total, credits_used, autonomy_mode
+      `SELECT id, name, mission_statement, current_phase, credits_total, credits_used, autonomy_mode,
+              vision, target_market, value_prop, goals, kpis
        FROM companies WHERE plan = 'pro' LIMIT 10`
     )
 
@@ -51,9 +70,14 @@ export async function POST(req: Request) {
 
       if (approvedTask.rows.length > 0) {
         const task = approvedTask.rows[0]
-        
+
         // MANUAL MODE: Only execute if explicitly approved for auto-execution
         if (autonomyMode === 'manual') {
+          await logActivity(pool, companyId, 'waiting_approval', {
+            task_id: task.id,
+            task_name: task.task_name,
+            mode: 'manual',
+          })
           results.push({
             company_id: companyId,
             company_name: company.name,
@@ -68,8 +92,13 @@ export async function POST(req: Request) {
         if (autonomyMode === 'semi') {
           const lowRisk = ['research', 'analysis', 'report', 'review', 'audit']
           const isLowRisk = lowRisk.some(r => task.task_name.toLowerCase().includes(r))
-          
+
           if (!isLowRisk) {
+            await logActivity(pool, companyId, 'requires_approval', {
+              task_id: task.id,
+              task_name: task.task_name,
+              mode: 'semi',
+            })
             results.push({
               company_id: companyId,
               company_name: company.name,
@@ -95,7 +124,12 @@ export async function POST(req: Request) {
               'No hay credits disponibles para ejecutar tareas.'
             ]
           )
-          
+
+          await logActivity(pool, companyId, 'proposal_generated', {
+            reason: 'no_credits',
+            mode: autonomyMode,
+          })
+
           results.push({
             company_id: companyId,
             company_name: company.name,
@@ -125,7 +159,7 @@ export async function POST(req: Request) {
             guarantees_applied: GUARANTEES,
             started_at: new Date().toISOString(),
           }
-          
+
           await pool.query(
             `INSERT INTO execution_logs (id, company_id, task_id, started_at, credits_charged, context_used, task_details)
              VALUES ($1, $2, $3, NOW(), 1, $4, $5)`,
@@ -146,6 +180,16 @@ export async function POST(req: Request) {
               task.id
             ]
           )
+
+          // Log task_executed activity
+          await logActivity(pool, companyId, 'task_executed', {
+            task_id: task.id,
+            task_name: task.task_name,
+            agent_id: task.agent_id,
+            mode: autonomyMode,
+            log_id: logId,
+            credits_remaining: creditsRemaining - 1,
+          })
 
           results.push({
             company_id: companyId,
@@ -173,7 +217,12 @@ export async function POST(req: Request) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ company_id: companyId })
             })
-            
+
+            await logActivity(pool, companyId, 'proposal_generated', {
+              source: 'autonomous_cycle',
+              mode: autonomyMode,
+            })
+
             results.push({
               company_id: companyId,
               company_name: company.name,
@@ -182,6 +231,10 @@ export async function POST(req: Request) {
               message: 'Nueva propuesta generada'
             })
           } catch (e: any) {
+            await logActivity(pool, companyId, 'error', {
+              action: 'proposal_generation_failed',
+              error: e.message,
+            })
             results.push({
               company_id: companyId,
               company_name: company.name,
@@ -190,6 +243,10 @@ export async function POST(req: Request) {
             })
           }
         } else {
+          await logActivity(pool, companyId, 'waiting_approval', {
+            reason: 'proposal_pending',
+            mode: autonomyMode,
+          })
           results.push({
             company_id: companyId,
             company_name: company.name,
@@ -205,6 +262,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       cycle: new Date().toISOString(),
+      mock_mode: mockMode,
       companies_processed: companies.rows.length,
       autonomy_modes: {
         manual: results.filter(r => r.mode === 'manual').length,
@@ -214,8 +272,19 @@ export async function POST(req: Request) {
       results
     }, { status: 200, headers })
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('Autonomous cycle error:', err)
     return NextResponse.json({ error: err.message }, { status: 500, headers })
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
+  })
 }
