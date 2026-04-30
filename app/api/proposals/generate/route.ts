@@ -243,7 +243,7 @@ export async function POST(req: Request) {
 
     // Get existing tasks
     const tasksResult = await pool.query(
-      'SELECT task_name, status FROM tasks WHERE company_id = $1 ORDER BY created_at DESC LIMIT 20',
+      'SELECT task_name, status FROM mission_tasks WHERE company_id = $1 ORDER BY created_at DESC LIMIT 20',
       [company_id]
     )
 
