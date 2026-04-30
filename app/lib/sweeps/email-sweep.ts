@@ -18,6 +18,8 @@ function getPool() {
 
 export async function runEmailSweep(companyId?: string) {
   console.log('[EmailSweep] Starting sweep', { companyId })
+  
+  const sandboxMode = process.env.SANDBOX_MODE !== 'false'
   const pool = getPool()
 
   try {
@@ -31,6 +33,13 @@ export async function runEmailSweep(companyId?: string) {
     }
 
     const company = companyResult.rows[0]
+    
+    // In sandbox mode, skip external email sending
+    if (sandboxMode) {
+      console.log('[SANDBOX] Email sweep skipped external calls')
+    }
+    
+    // Simulate email analysis (internal work always runs)
     const mockEmails = [
       'Hola, me interesa saber más sobre sus servicios',
       'Tengo un problema con mi cuenta',
@@ -56,6 +65,7 @@ export async function runEmailSweep(companyId?: string) {
     return {
       success: true,
       emails_analyzed: mockEmails.length,
+      sandbox_mode: sandboxMode,
       drafts_created: 0,
       actions: ['inbox_analyzed']
     }

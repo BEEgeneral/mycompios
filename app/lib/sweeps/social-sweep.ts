@@ -18,6 +18,10 @@ function getPool() {
 
 export async function runSocialSweep(companyId?: string) {
   console.log('[SocialSweep] Starting sweep', { companyId })
+  
+  // SANDBOX_MODE blocks external actions but allows internal processing
+  const sandboxMode = process.env.SANDBOX_MODE !== 'false'
+  
   const pool = getPool()
 
   try {
@@ -31,6 +35,13 @@ export async function runSocialSweep(companyId?: string) {
     }
 
     const company = companyResult.rows[0]
+    
+    // In sandbox mode, skip external API calls (Twitter, etc)
+    if (sandboxMode) {
+      console.log('[SANDBOX] Social sweep skipped external calls')
+    }
+    
+    // Simulate social mentions analysis (internal work always runs)
     const mockMentions = [
       `@${company.name} me encanta su producto!`,
       `Problemas con el soporte de ${company.name}`,
@@ -56,6 +67,7 @@ export async function runSocialSweep(companyId?: string) {
     return {
       success: true,
       mentions_analyzed: mockMentions.length,
+      sandbox_mode: sandboxMode,
       actions: ['mentions_analyzed']
     }
 

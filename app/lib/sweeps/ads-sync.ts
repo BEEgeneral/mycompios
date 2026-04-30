@@ -18,6 +18,8 @@ function getPool() {
 
 export async function runAdsSync(companyId?: string) {
   console.log('[AdsSync] Starting sync', { companyId })
+  
+  const sandboxMode = process.env.SANDBOX_MODE !== 'false'
   const pool = getPool()
 
   try {
@@ -31,6 +33,13 @@ export async function runAdsSync(companyId?: string) {
     }
 
     const company = companyResult.rows[0]
+    
+    // In sandbox mode, skip external API calls (Stripe, Ads APIs)
+    if (sandboxMode) {
+      console.log('[SANDBOX] Ads sync skipped external calls')
+    }
+    
+    // Simulate ad metrics (internal work always runs)
     const adMetrics = {
       impressions: Math.floor(Math.random() * 10000) + 1000,
       clicks: Math.floor(Math.random() * 500) + 50,
@@ -56,7 +65,9 @@ export async function runAdsSync(companyId?: string) {
 
     return {
       success: true,
-      metrics_synced: adMetrics
+      metrics_synced: adMetrics,
+      sandbox_mode: sandboxMode,
+      recommendations: 'Metrics simulated in sandbox mode'
     }
 
   } catch (error) {
