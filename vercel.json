@@ -1,9 +1,4 @@
 {
   "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/daily-summary",
-      "schedule": "0 8 * * *"
-    }
-  ]
+  "crons": []
 }
