@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { isMockMode } from '@/app/api/mock-mode/route'
+import { isMockMode } from '../../lib/mock'
 
 // AUTONOMOUS CYCLE - Daily execution respecting autonomy mode
 // Modes: 'manual' | 'semi' | 'auto'

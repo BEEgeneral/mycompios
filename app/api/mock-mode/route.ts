@@ -1,10 +1,11 @@
-// Mock Mode toggle - inspired by Polsia's CLAUDE_CLI_MOCK=true
-// Enable/disable mock mode for testing without real LLM calls
+// Mock Mode status endpoint
+// In production, set MOCK_MODE=true in environment
 
 import { NextResponse } from 'next/server'
+import { isMockMode } from '../../lib/mock'
 
 export async function GET() {
-  const mockMode = process.env.MOCK_MODE === 'true'
+  const mockMode = isMockMode()
   
   return NextResponse.json({
     mock_mode: mockMode,
@@ -18,10 +19,6 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { enabled } = await request.json()
-    
-    // Note: MOCK_MODE is set via environment variable
-    // This endpoint is for checking status only
-    // To enable mock mode, set MOCK_MODE=true in environment
     
     return NextResponse.json({
       message: 'MOCK_MODE is controlled by environment variable MOCK_MODE',
