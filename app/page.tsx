@@ -47,16 +47,45 @@ const SOCIAL_PROOF = [
   { quote: 'Tengo un equipo de 6 Compis que trabaja desde las 8am hasta medianoche. Nunca tuve un asistente que trabajara 24/7 — hasta ahora.', name: 'Sergi Marquès', role: 'Director, Inmobiliaria Costa Brava', result: '24/7 atención sin coste de personal', initials: 'SM', gradient: C.elena },
 ]
 
-function Avatar({ initials, gradient, size = 80, name }: { initials: string; gradient: string[]; size?: number; name?: string }) {
-  const [f, t] = gradient
+function AgentAvatar({ name, size = 80, initials, gradient }: { name?: string; size?: number; initials?: string; gradient?: string[] }) {
+  // Map agent names to their photos
+  const agentPhotos: Record<string, string> = {
+    'Laura': '/assets/agent-laura.jpg',
+    'Enzo': '/assets/agent-enzo.jpg',
+    'Carlos': '/assets/agent-carlos.jpg',
+    'Elena': '/assets/agent-elena.jpg',
+    'Marcos': '/assets/agent-marcos.jpg',
+    'Paco': '/assets/agent-paco.jpg',
+    'Pelayo': '/assets/agent-pelayo.jpg',
+    'Daniel': '/assets/agent-daniel.jpg',
+    'Diana': '/assets/agent-diana.jpg',
+    'Lucía': '/assets/agent-lucia.jpg',
+  }
+  
+  const photoPath = name ? agentPhotos[name] : null
+  const [f, t] = gradient || [C.dark, C.dark]
+  const displayInitials = initials || (name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??')
+  
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      background: `linear-gradient(135deg, ${f}, ${t})`,
+      overflow: 'hidden', flexShrink: 0,
+      background: photoPath ? 'transparent' : `linear-gradient(135deg, ${f}, ${t})`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: C.white, fontWeight: 700, fontSize: size * 0.3, flexShrink: 0,
+      color: C.white, fontWeight: 700, fontSize: size * 0.3,
+      border: `2px solid ${C.yellow}`,
     }}>
-      {initials}
+      {photoPath ? (
+        <img 
+          src={photoPath} 
+          alt={name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement
+            target.style.display = 'none'
+          }}
+        />
+      ) : displayInitials}
     </div>
   )
 }
@@ -225,7 +254,7 @@ export default function Landing() {
               {AGENTS.map(a => (
                 <div key={a.name} style={{ background: C.white, border: `1px solid ${C.pastel}`, borderRadius: 16, padding: '1.5rem', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                    <Avatar initials={a.initials} gradient={a.gradient} size={56} name={a.name} />
+                    <AgentAvatar initials={a.initials} gradient={a.gradient} size={56} name={a.name} />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '1rem', color: C.dark }}>{a.name}</div>
                       <div style={{ fontSize: '0.8rem', fontWeight: 600, background: `${a.gradient[0]}20`, color: a.gradient[0], padding: '0.15rem 0.5rem', borderRadius: 9999, display: 'inline-block', marginTop: '0.2rem' }}>{a.role}</div>
@@ -251,7 +280,7 @@ export default function Landing() {
                 <div key={t.name} style={{ background: C.cream, border: `2px solid ${C.pastel}`, borderRadius: 16, padding: '1.75rem', cursor: 'default' }}>
                   <p style={{ fontSize: '0.9rem', color: '#374151', fontStyle: 'italic', lineHeight: 1.7, marginBottom: '1.25rem' }}>"{t.quote}"</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                    <Avatar initials={t.initials} gradient={t.gradient} size={44} />
+                    <AgentAvatar initials={t.initials} gradient={t.gradient} size={44} />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', color: C.dark }}>{t.name}</div>
                       <div style={{ fontSize: '0.75rem', color: C.muted }}>{t.role}</div>
@@ -327,7 +356,7 @@ export default function Landing() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ background: C.white, border: `2px solid ${C.dark}`, borderRadius: 20, padding: isMobile ? '1.5rem' : '2rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', maxWidth: 480, width: '100%', boxSizing: 'border-box', flexDirection: isMobile ? 'column' : 'row' }}>
-                <Avatar initials="DH" gradient={C.daniel} size={72} name="Daniel Herrera" />
+                <AgentAvatar initials="DH" gradient={C.daniel} size={72} name="Daniel Herrera" />
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '1.1rem', color: C.dark }}>Daniel Herrera</div>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6B7280', marginBottom: '0.5rem' }}>Director General</div>
@@ -339,7 +368,7 @@ export default function Landing() {
             <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}><div style={{ width: 2, height: 32, background: C.pastel }} /></div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ background: C.white, border: `1px solid ${C.pastel}`, borderRadius: 20, padding: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', maxWidth: 420, width: '100%', boxSizing: 'border-box', flexDirection: isMobile ? 'column' : 'row' }}>
-                <Avatar initials="P" gradient={C.pelayo} size={56} name="Pelayo" />
+                <AgentAvatar initials="P" gradient={C.pelayo} size={56} name="Pelayo" />
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '1rem', color: C.dark }}>Pelayo</div>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6B7280', marginBottom: '0.4rem' }}>Compis Director</div>
@@ -351,7 +380,7 @@ export default function Landing() {
             <div className="agents-grid team-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
               {AGENTS.map(a => (
                 <div key={a.name} style={{ background: C.white, border: `1px solid ${C.pastel}`, borderRadius: 16, padding: '1.25rem', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center' }}><Avatar initials={a.initials} gradient={a.gradient} size={64} name={a.name} /></div>
+                  <div style={{ display: 'flex', justifyContent: 'center' }}><AgentAvatar initials={a.initials} gradient={a.gradient} size={64} name={a.name} /></div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', color: C.dark, marginTop: '0.75rem' }}>{a.name}</div>
                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: a.gradient[0], marginBottom: '0.5rem' }}>{a.role}</div>
                   <p style={{ fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.5 }}>{a.desc}</p>
@@ -372,7 +401,7 @@ export default function Landing() {
               {TESTIMONIALS.map(t => (
                 <div key={t.name} style={{ background: C.cream, border: `2px solid ${C.pastel}`, borderRadius: 16, padding: '1.5rem', cursor: 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                    <Avatar initials={t.initials} gradient={t.gradient} size={48} />
+                    <AgentAvatar initials={t.initials} gradient={t.gradient} size={48} />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.95rem', color: C.dark }}>{t.name}</div>
                       <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{t.role}</div>
