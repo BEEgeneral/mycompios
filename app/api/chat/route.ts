@@ -164,11 +164,18 @@ export async function POST(req) {
       )
     }
 
-    // Save conversation
+    // Save to memory instead of learning_interactions
     await pool.query(
-      `INSERT INTO learning_interactions (company_id, agent_id, user_message, agent_response, created_at)
-       VALUES ($1, $2, $3, $4, NOW())`,
-      [companyId, selectedAgent, message, response]
+      `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        require('crypto').randomUUID(),
+        companyId,
+        'chat',
+        `Chat con ${AGENTS[selectedAgent]?.name || 'Paco'}: ${message.substring(0, 100)}`,
+        ['chat', selectedAgent],
+        'chat'
+      ]
     )
 
     await pool.end()
