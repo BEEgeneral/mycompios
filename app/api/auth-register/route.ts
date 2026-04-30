@@ -33,7 +33,7 @@ function getDbPool() {
     database: process.env.NEON_DB,
     user: process.env.NEON_USER,
     password: process.env.NEON_PASSWORD,
-    ssl: { rejectUnauthorized: false },
+    ssl: true,
     max: 1,
   })
 }
