@@ -14,6 +14,48 @@ const AGENT_PROMPTS: Record<string, string> = {
   marcos: 'Eres Marcos, soporte. Ejecuta la tarea. Responde solo con el resultado en 1 frase.',
 }
 
+async function saveToMemory(pool: any, companyId: string, taskId: string, taskName: string, result: string) {
+  try {
+    // Determine entry type based on task name
+    let entryType = 'result'
+    let tags: string[] = []
+    
+    const taskLower = taskName.toLowerCase()
+    if (taskLower.includes('research') || taskLower.includes('competidor') || taskLower.includes('investigacion')) {
+      entryType = 'research'
+      tags = ['research']
+    } else if (taskLower.includes('bug') || taskLower.includes('error') || taskLower.includes('fix')) {
+      entryType = 'result'
+      tags = ['bug-fix']
+    } else if (taskLower.includes('outreach') || taskLower.includes('growth') || taskLower.includes('validar')) {
+      entryType = 'result'
+      tags = ['growth', 'validation']
+    } else if (taskLower.includes('landing') || taskLower.includes('build') || taskLower.includes('mvp')) {
+      entryType = 'result'
+      tags = ['product']
+    }
+    
+    // Extract key info from result for memory
+    const memoryContent = `${taskName}: ${result}`
+    
+    await pool.query(
+      `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source, related_task_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        require('crypto').randomUUID(),
+        companyId,
+        entryType,
+        memoryContent,
+        tags,
+        'task_execution',
+        taskId
+      ]
+    )
+  } catch (e) {
+    console.error('Error saving to memory:', e)
+  }
+}
+
 export async function POST() {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
   
@@ -75,7 +117,10 @@ export async function POST() {
           [task.id, result]
         )
 
-        executed.push({ task: task.task_name, agent: task.agent_id, result })
+        // SAVE TO MEMORY - Auto-save every completed task
+        await saveToMemory(pool, company.id, task.id, task.task_name, result)
+
+        executed.push({ task: task.task_name, agent: task.agent_id, result, saved_to_memory: true })
       }
     }
 
