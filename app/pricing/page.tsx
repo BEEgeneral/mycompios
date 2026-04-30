@@ -109,7 +109,7 @@ export default function Pricing() {
           <span style={{ fontWeight: 700, fontSize: '1rem', color: C.yellow }}>Compi</span>
         </Link>
         {user ? (
-          <Link href="/dashboard" style={{ color: C.muted, textDecoration: 'none', fontSize: '0.9rem' }}>← Dashboard</Link>
+          <Link href="/dashboard" style={{ color: C.muted, textDecoration: 'none', fontSize: '0.9rem' }}>← Panel de Control</Link>
         ) : (
           <Link href="/login" style={{ color: C.muted, textDecoration: 'none', fontSize: '0.9rem' }}>Iniciar sesión</Link>
         )}

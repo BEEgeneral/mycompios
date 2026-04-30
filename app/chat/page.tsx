@@ -168,7 +168,7 @@ export default function ChatPage() {
         </div>
 
         <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}` }}>
-          <a href="/dashboard" style={{ display: 'block', padding: '8px 12px', fontSize: '13px', color: C.muted, textDecoration: 'none' }}>← Dashboard</a>
+          <a href="/dashboard" style={{ display: 'block', padding: '8px 12px', fontSize: '13px', color: C.muted, textDecoration: 'none' }}>← Panel de Control</a>
         </div>
       </div>
 
@@ -184,7 +184,7 @@ export default function ChatPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', minWidth: 0 }}>
         <div style={{ padding: '14px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: C.muted, padding: '4px' }}>☰</button>
-          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: C.muted, textDecoration: 'none', fontSize: '14px', marginLeft: '8px' }}>← Dashboard</a>
+          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: C.muted, textDecoration: 'none', fontSize: '14px', marginLeft: '8px' }}>← Panel de Control</a>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '18px' }}>🎯</span>
             <div>

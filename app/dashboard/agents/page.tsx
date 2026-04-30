@@ -13,7 +13,7 @@ const C = {
   red: '#DC2626'
 }
 
-export default function AgentDashboard() {
+export default function AgentPanel de Control() {
   const [agents, setAgents] = useState<any[]>([])
   const [missions, setMissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,7 +62,7 @@ export default function AgentDashboard() {
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0, color: C.dark }}>🤖 Panel de Agentes</h1>
-          <Link href="/dashboard" style={{ color: C.muted, textDecoration: 'none' }}>← Dashboard</Link>
+          <Link href="/dashboard" style={{ color: C.muted, textDecoration: 'none' }}>← Panel de Control</Link>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>

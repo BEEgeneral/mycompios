@@ -132,7 +132,7 @@ export default function AgentsPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0, color: '#FFFFFF', fontSize: '1.75rem' }}>🤖 Agentes</h1>
-          <Link href="/dashboard" style={{ color: '#888', textDecoration: 'none' }}>← Dashboard</Link>
+          <Link href="/dashboard" style={{ color: '#888', textDecoration: 'none' }}>← Panel de Control</Link>
         </div>
 
         {/* Message */}

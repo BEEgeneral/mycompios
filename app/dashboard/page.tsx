@@ -37,7 +37,7 @@ interface Mission {
   current_phase: number
 }
 
-export default function Dashboard() {
+export default function Panel de Control() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<any>(null)

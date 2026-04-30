@@ -56,7 +56,7 @@ export default function ClientsPage() {
           <span style={{ color: C.yellow }}>My</span>Compi
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <a href="/dashboard" style={{ color: C.pastel, fontSize: '0.85rem', textDecoration: 'none' }}>← Dashboard</a>
+          <a href="/dashboard" style={{ color: C.pastel, fontSize: '0.85rem', textDecoration: 'none' }}>← Panel de Control</a>
           <button onClick={handleLogout} style={{ background: 'transparent', border: `1px solid ${C.pastel}`, color: C.pastel, padding: '0.4rem 0.8rem', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Salir</button>
         </div>
       </header>
