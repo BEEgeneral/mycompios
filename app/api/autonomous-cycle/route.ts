@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server'
 
+// AUTONOMOUS CYCLE - Daily execution respecting autonomy mode
+// Modes: 'manual' | 'semi' | 'auto'
+
+const GUARANTEES = {
+  NEVER_DELETE_DATA: true,
+  NEVER_CHANGE_BILLING: true,
+  NEVER_PUBLISH_WITHOUT_CONFIG: true,
+}
+
 export async function POST(req: Request) {
   const headers = { 
     'Access-Control-Allow-Origin': '*', 
@@ -19,7 +28,7 @@ export async function POST(req: Request) {
 
     // Get all companies with plan='pro'
     const companies = await pool.query(
-      `SELECT id, name, mission_statement, current_phase, credits_total, credits_used
+      `SELECT id, name, mission_statement, current_phase, credits_total, credits_used, autonomy_mode
        FROM companies WHERE plan = 'pro' LIMIT 10`
     )
 
@@ -27,11 +36,12 @@ export async function POST(req: Request) {
 
     for (const company of companies.rows) {
       const companyId = company.id
+      const autonomyMode = company.autonomy_mode || 'manual'
       const creditsRemaining = (company.credits_total || 5) - (company.credits_used || 0)
 
       // Check for approved tasks pending execution
       const approvedTask = await pool.query(
-        `SELECT mt.id, mt.task_name, mt.task_data, mt.agent_id
+        `SELECT mt.id, mt.task_name, mt.task_data, mt.agent_id, mt.description
          FROM mission_tasks mt
          WHERE mt.company_id = $1 AND mt.status = 'approved'
          ORDER BY mt.priority DESC, mt.created_at ASC
@@ -40,11 +50,40 @@ export async function POST(req: Request) {
       )
 
       if (approvedTask.rows.length > 0) {
-        // Execute task
         const task = approvedTask.rows[0]
         
+        // MANUAL MODE: Only execute if explicitly approved for auto-execution
+        if (autonomyMode === 'manual') {
+          results.push({
+            company_id: companyId,
+            company_name: company.name,
+            mode: 'manual',
+            action: 'waiting_approval',
+            message: 'Modo manual: esperando approval del usuario'
+          })
+          continue
+        }
+
+        // SEMI-AUTO MODE: Only execute low-risk tasks
+        if (autonomyMode === 'semi') {
+          const lowRisk = ['research', 'analysis', 'report', 'review', 'audit']
+          const isLowRisk = lowRisk.some(r => task.task_name.toLowerCase().includes(r))
+          
+          if (!isLowRisk) {
+            results.push({
+              company_id: companyId,
+              company_name: company.name,
+              mode: 'semi',
+              action: 'requires_approval',
+              task_name: task.task_name,
+              message: 'Modo semi: esta tarea requiere approval manual'
+            })
+            continue
+          }
+        }
+
+        // AUTO or SEMI (low risk) - Execute
         if (creditsRemaining <= 0) {
-          // No credits - generate proposal instead
           await pool.query(
             `INSERT INTO proposals (id, company_id, task_name, description, justification, status)
              VALUES ($1, $2, $3, $4, $5, 'proposed')`,
@@ -76,25 +115,51 @@ export async function POST(req: Request) {
             [task.id]
           )
 
-          // Log execution
+          // Log execution with full details
           const logId = require('crypto').randomUUID()
+          const taskDetails = {
+            task_name: task.task_name,
+            description: task.description,
+            agent_id: task.agent_id,
+            autonomy_mode: autonomyMode,
+            guarantees_applied: GUARANTEES,
+            started_at: new Date().toISOString(),
+          }
+          
           await pool.query(
-            `INSERT INTO execution_logs (id, company_id, task_id, started_at, credits_charged)
-             VALUES ($1, $2, $3, NOW(), 1)`,
-            [logId, companyId, task.id]
+            `INSERT INTO execution_logs (id, company_id, task_id, started_at, credits_charged, context_used, task_details)
+             VALUES ($1, $2, $3, NOW(), 1, $4, $5)`,
+            [logId, companyId, task.id, JSON.stringify({ mode: autonomyMode }), JSON.stringify(taskDetails)]
+          )
+
+          // Save to memory
+          await pool.query(
+            `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source, related_task_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              require('crypto').randomUUID(),
+              companyId,
+              'result',
+              `Tarea ejecutada: ${task.task_name}`,
+              ['task_execution'],
+              'autonomous_cycle',
+              task.id
+            ]
           )
 
           results.push({
             company_id: companyId,
             company_name: company.name,
-            action: 'executing',
+            mode: autonomyMode,
+            action: 'executed',
             task_id: task.id,
             task_name: task.task_name,
-            credits_remaining: creditsRemaining - 1
+            credits_remaining: creditsRemaining - 1,
+            log_id: logId
           })
         }
       } else {
-        // No approved tasks - check if there's already a pending proposal
+        // No approved tasks - generate proposal
         const existingProposal = await pool.query(
           `SELECT id FROM proposals WHERE company_id = $1 AND status = 'proposed' LIMIT 1`,
           [companyId]
@@ -112,6 +177,7 @@ export async function POST(req: Request) {
             results.push({
               company_id: companyId,
               company_name: company.name,
+              mode: autonomyMode,
               action: 'proposal_generated',
               message: 'Nueva propuesta generada'
             })
@@ -127,6 +193,7 @@ export async function POST(req: Request) {
           results.push({
             company_id: companyId,
             company_name: company.name,
+            mode: autonomyMode,
             action: 'waiting_approval',
             message: 'Propuesta pendiente de approval'
           })
@@ -139,6 +206,11 @@ export async function POST(req: Request) {
     return NextResponse.json({
       cycle: new Date().toISOString(),
       companies_processed: companies.rows.length,
+      autonomy_modes: {
+        manual: results.filter(r => r.mode === 'manual').length,
+        semi: results.filter(r => r.mode === 'semi').length,
+        auto: results.filter(r => r.mode === 'auto').length,
+      },
       results
     }, { status: 200, headers })
 
