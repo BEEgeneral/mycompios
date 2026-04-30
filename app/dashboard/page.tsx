@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const C = { dark: '#0D0D0D', darkCard: '#1A1A1A', border: '#2A2A2A', muted: '#888', light: '#E5E5E5', yellow: '#FFD054', green: '#10A37F', red: '#EF4444', white: '#FFFFFF' }
 
