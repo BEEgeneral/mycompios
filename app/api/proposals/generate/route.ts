@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
-// ÁRBOL DE DECISIÓN - Proposal Engine
-// Basado en Polsia: contexto + lógica, no templates
+// ÁRBOL DE DECISIÓN - Proposal Engine v2
+// Basado en Polsia: contexto + lógica + memoria
 
 function getPhase(company: any): number {
   return company.current_phase || 0
@@ -26,11 +26,21 @@ function getRejectedProposals(proposals: any[]): string[] {
   return proposals.filter(p => p.status === 'rejected').map(p => p.task_name)
 }
 
-function generateProposal(company: any, tasks: any[], proposals: any[]): any | null {
+function generateProposal(company: any, tasks: any[], proposals: any[], memory: any[]): any | null {
   const phase = getPhase(company)
   const completed = getCompletedTasks(tasks)
   const failed = getFailedTasks(tasks)
   const rejected = getRejectedProposals(proposals)
+  const memoryContent = memory.map(m => m.content).join(' | ')
+  
+  // Extraer insights de memoria
+  const memoryInsights = {
+    competitorsResearched: memory.some(m => m.entry_type === 'research' && m.content.toLowerCase().includes('competidor')),
+    validatedDemand: memory.some(m => m.entry_type === 'result' && m.content.toLowerCase().includes('demanda')),
+    userPreferences: memory.filter(m => m.entry_type === 'preference').map(m => m.content),
+    keyDecisions: memory.filter(m => m.entry_type === 'decision').map(m => m.content),
+  }
+
   const hasProduct = company.has_product || false
   const hasLanding = company.has_landing || false
   const hasUsers = company.has_users || false
@@ -61,27 +71,26 @@ function generateProposal(company: any, tasks: any[], proposals: any[]): any | n
 
   // PRE-PRODUCT (Nivel 1)
   if (!hasProduct) {
-    // Check qué se ha hecho
+    // Usar memoria para saber qué se ha hecho
     const researchedCompetitors = completed.some(t => 
       t.toLowerCase().includes('research') || 
       t.toLowerCase().includes('competidor') ||
       t.toLowerCase().includes('investigacion')
-    )
+    ) || memoryInsights.competitorsResearched
     
     const validatedDemand = completed.some(t =>
       t.toLowerCase().includes('outreach') ||
       t.toLowerCase().includes('entrevista') ||
       t.toLowerCase().includes('validacion')
-    )
+    ) || memoryInsights.validatedDemand
 
     const builtLanding = completed.some(t =>
       t.toLowerCase().includes('landing')
     )
 
     if (!researchedCompetitors) {
-      // Check si fue rechazado
       if (rejected.some(r => r.toLowerCase().includes('research'))) {
-        return null // No reproponer lo rechazado
+        return null
       }
       return {
         task_name: 'Research de competidores',
@@ -118,7 +127,6 @@ function generateProposal(company: any, tasks: any[], proposals: any[]): any | n
       }
     }
 
-    // Siguiente: Build MVP
     if (!failed.some(f => f.toLowerCase().includes('mvp') || f.toLowerCase().includes('build'))) {
       return {
         task_name: 'Build MVP',
@@ -129,14 +137,14 @@ function generateProposal(company: any, tasks: any[], proposals: any[]): any | n
       }
     }
 
-    return null // No hay propuesta clara
+    return null
   }
 
   // POST-PRODUCT (Nivel 2)
   
   // 1. Bugs siempre primero
   const hasBugsTask = completed.some(t => t.toLowerCase().includes('bug')) || 
-                      tasks.some(t => t.status === 'running' && t.task_name?.toLowerCase().includes('bug'))
+                        tasks.some(t => t.status === 'running' && t.task_name?.toLowerCase().includes('bug'))
   if (!hasBugsTask) {
     return {
       task_name: 'Fix bugs',
@@ -162,7 +170,6 @@ function generateProposal(company: any, tasks: any[], proposals: any[]): any | n
   }
 
   // 3. Usan el producto?
-  // Si hay usuarios pero no usan → investigar UX
   const hasUptimeIssue = completed.some(t => t.toLowerCase().includes('ux') || t.toLowerCase().includes('onboarding'))
   if (!hasUptimeIssue) {
     return {
@@ -253,18 +260,26 @@ export async function POST(req: Request) {
       [company_id]
     )
 
+    // Get memory entries
+    const memoryResult = await pool.query(
+      'SELECT entry_type, content FROM memory_entries WHERE company_id = $1 ORDER BY created_at DESC LIMIT 20',
+      [company_id]
+    )
+
     // Generate proposal
     const proposal = generateProposal(
       company,
       tasksResult.rows,
-      proposalsResult.rows
+      proposalsResult.rows,
+      memoryResult.rows
     )
 
     if (!proposal) {
       await pool.end()
       return NextResponse.json({ 
         message: 'No hay propuesta en este momento',
-        company_id 
+        company_id,
+        memory_count: memoryResult.rows.length
       }, { status: 200, headers })
     }
 
@@ -297,7 +312,8 @@ export async function POST(req: Request) {
       proposal: {
         id: proposalId,
         ...proposal
-      }
+      },
+      memory_used: memoryResult.rows.length
     }, { status: 200, headers })
 
   } catch (err) {
