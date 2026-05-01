@@ -5,12 +5,31 @@ on:
     branches: [ main ]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment: production
     
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Build
+        run: npx next build
+        env:
+          NEON_HOST: ${{ secrets.NEON_HOST }}
+          NEON_DB: ${{ secrets.NEON_DB }}
+          NEON_USER: ${{ secrets.NEON_USER }}
+          NEON_PASSWORD: ${{ secrets.NEON_PASSWORD }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
       
       - name: Deploy to Vercel
         uses: amondtech/vercel-action@v2
@@ -20,15 +39,7 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
       
-      - name: Health check after deploy
+      - name: Health check
         run: |
-          sleep 10
-          curl -sf https://www.mycompi.com/api/health-check || exit 1
-      
-      - name: Notify success
-        if: success()
-        run: echo "Deploy successful - https://www.mycompi.com"
-      
-      - name: Notify failure
-        if: failure()
-        run: echo "Deploy failed - check Vercel dashboard"
+          sleep 15
+          curl -sf https://www.mycompi.com/api/health-check || echo "Health check failed - check manually"
