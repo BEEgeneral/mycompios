@@ -33,28 +33,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404, headers })
     }
 
-    // Use real Stripe if available, otherwise mock
-    let result
-    if (process.env.STRIPE_SECRET_KEY) {
-      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
-      const body = await req.json()
-      const { priceId } = body
+    const stripeKey = process.env.STRIPE_SECRET_KEY
+    const { priceId } = await req.json()
+
+    // Determine price based on plan
+    const plans: Record<string, string> = {
+      pro: priceId || process.env.STRIPE_PRICE_PRO || 'price_pro_monthly',
+      autonomous: priceId || process.env.STRIPE_PRICE_AUTONOMOUS || 'price_autonomous_monthly'
+    }
+
+    const selectedPrice = plans[company.plan as string] || plans.pro
+
+    let result: { sessionId: string; url: string }
+
+    if (stripeKey && stripeKey !== 'mock') {
+      // Real Stripe mode
+      const stripe = require('stripe')(stripeKey)
 
       const checkoutSession = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{
-          price: priceId || 'price_1TMWMHFnOlGTfuoBIKY9H2P7',
+          price: selectedPrice,
           quantity: 1,
         }],
         mode: 'subscription',
-        success_url: 'https://mycompios.vercel.app/dashboard?upgrade=success',
-        cancel_url: 'https://mycompios.vercel.app/dashboard?upgrade=cancelled',
-        metadata: { company_id: company.id },
+        success_url: 'https://mycompi.com/dashboard?upgrade=success',
+        cancel_url: 'https://mycompi.com/dashboard?upgrade=cancelled',
+        metadata: {
+          company_id: company.id,
+          company_name: company.name
+        },
+        customer_email: company.email,
       })
 
-      result = { sessionId: checkoutSession.id, url: checkoutSession.url }
+      result = { sessionId: checkoutSession.id, url: checkoutSession.url ?? '' }
     } else {
-      result = await createCheckoutSession('cus_mock', 'price_mock', 'https://mycompi.com/dashboard?success', 'https://mycompi.com/dashboard?cancel')
+      // Mock mode for development
+      if (!stripeKey) {
+        console.log('STRIPE_SECRET_KEY not configured - using mock mode')
+      }
+      result = await createCheckoutSession('cus_mock', selectedPrice, 'https://mycompi.com/dashboard?success', 'https://mycompi.com/dashboard?cancel')
     }
 
     return NextResponse.json({ success: true, ...result }, { status: 200, headers })

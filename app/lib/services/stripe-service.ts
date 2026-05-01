@@ -49,11 +49,11 @@ export async function createCheckoutSession(
   priceId: string,
   successUrl: string,
   cancelUrl: string
-): Promise<{ id: string; url: string }> {
+): Promise<{ sessionId: string; url: string }> {
   // Mock implementation - real Stripe would use stripe SDK
   const sessionId = 'cs_' + randomUUID().replace(/-/g, '').substring(0, 24)
   return {
-    id: sessionId,
+    sessionId: sessionId,
     url: `${cancelUrl}?session_id=${sessionId}`
   }
 }
