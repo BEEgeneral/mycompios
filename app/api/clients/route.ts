@@ -1,22 +1,11 @@
 /**
  * Clients API - Get company clients
  * GET /api/clients?company_id=XXX
+ * Uses marketing-service.ts (Polsia-style services layer)
  */
 
 import { NextResponse } from 'next/server'
-
-function getDbPool() {
-  const { Pool } = require('pg')
-  return new Pool({
-    host: process.env.NEON_HOST,
-    port: 5432,
-    database: process.env.NEON_DB,
-    user: process.env.NEON_USER,
-    password: process.env.NEON_PASSWORD,
-    ssl: true,
-    max: 1,
-  })
-}
+import { getProspects } from '../../lib/services/marketing-service'
 
 export async function GET(req: Request) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -29,23 +18,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'company_id required' }, { status: 400, headers })
     }
     
-    const pool = getDbPool()
+    const prospects = await getProspects(companyId)
     
-    // Get clients (prospects that have been contacted)
-    const result = await pool.query(
-      `SELECT id, email, name, company_name, status, source, created_at
-       FROM prospects 
-       WHERE company_id = $1 AND status != 'new'
-       ORDER BY created_at DESC 
-       LIMIT 50`,
-      [companyId]
-    )
-    
-    await pool.end()
+    // Filter out 'new' prospects for clients view
+    const clients = prospects.filter(p => p.status !== 'new')
     
     return NextResponse.json({
-      clients: result.rows,
-      count: result.rows.length
+      clients,
+      count: clients.length
     }, { headers })
     
   } catch (err) {
