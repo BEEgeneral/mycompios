@@ -99,7 +99,7 @@ export async function logOrchestratorActivity(
   }
 }
 
-export async function callLLM(prompt: string): Promise<string> {
+export async function orchestratorLLM(prompt: string): Promise<string> {
   try {
     const res = await fetch(LLM_URL, {
       method: 'POST',
@@ -149,7 +149,7 @@ Genera el PLAN DE LA MAÑANA en formato:
 
 Responde en español, máximo 200 palabras.`
 
-  return await callLLM(prompt)
+  return await orchestratorLLM(prompt)
 }
 
 export async function generateEveningSummary(context: OrchestratorContext): Promise<string> {
@@ -182,6 +182,6 @@ Genera el RESUMEN DE LA TARDE en formato:
 
 Responde en español, máximo 150 palabras.`
 
-  return await callLLM(prompt)
+  return await orchestratorLLM(prompt)
 }
 
