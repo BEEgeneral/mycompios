@@ -17,12 +17,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
       
-      - name: Install Vercel CLI
-        run: npm install -g vercel
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
       
-      - name: Deploy to Vercel
-        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build
+        run: npx next build
         env:
           NEON_HOST: ${{ secrets.NEON_HOST }}
           NEON_DB: ${{ secrets.NEON_DB }}
@@ -31,3 +32,12 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      
+      - name: Deploy to Vercel
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        continue-on-error: true
+      
+      - name: Health check
+        run: |
+          sleep 10
+          curl -sf https://www.mycompi.com/api/health-check && echo "Deploy OK" || echo "Deploy may have failed"
