@@ -96,7 +96,7 @@ export async function createNewUser(data: {
     [userId, data.name, data.email.toLowerCase(), data.companyId, pwHash, now]
   )
 
-  return result.rows[0]
+  return { userId: result.rows[0].id, name: result.rows[0].name, email: result.rows[0].email }
 }
 
 export async function createRegistrationSession(userId: string): Promise<string> {
