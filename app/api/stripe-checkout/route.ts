@@ -1,7 +1,7 @@
 // STRIPE CHECKOUT - Create checkout session with plan selection
 
 import { NextResponse } from 'next/server'
-import { getUserBySessionToken, getCompanyById, createCheckoutSession } from '../../lib/services/stripe-service'
+import { getUserBySessionToken, getCompanyById, getCompanyByName, createCheckoutSession } from '../../lib/services/stripe-service'
 
 export async function POST(req: Request) {
   const headers = {
@@ -28,7 +28,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Sesion invalida' }, { status: 401, headers })
     }
 
-    const company = await getCompanyById(session.company_id)
+    console.log('DEBUG: session result:', session)
+    console.log('DEBUG: looking for company:', session.company)
+
+    const company = await getCompanyByName(session.company)
+    console.log('DEBUG: company result:', company)
+    
     if (!company) {
       return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404, headers })
     }

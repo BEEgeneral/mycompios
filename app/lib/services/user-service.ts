@@ -39,7 +39,7 @@ export interface UserWithCompany {
 export async function getUserByToken(token: string): Promise<string | null> {
   const db = getPool()
   const result = await db.query(
-    'SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()',
+    'SELECT user_id FROM sessions WHERE id = $1::text AND expires_at > NOW()',
     [token]
   )
   return result.rows[0]?.user_id || null
@@ -76,5 +76,5 @@ export async function createSession(userId: string, expiresInHours = 24): Promis
 
 export async function deleteSession(token: string): Promise<void> {
   const db = getPool()
-  await db.query('DELETE FROM sessions WHERE token = $1', [token])
+  await db.query('DELETE FROM sessions WHERE id = $1::text', [token])
 }

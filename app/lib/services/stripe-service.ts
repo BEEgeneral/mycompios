@@ -62,10 +62,10 @@ export async function getUserBySessionToken(token: string): Promise<any | null> 
   const db = getPool()
   
   const sessionResult = await db.query(
-    `SELECT s.user_id, u.email, u.name, u.company_id 
+    `SELECT s.user_id, u.email, u.name, u.company 
      FROM sessions s 
      JOIN app_user u ON u.id = s.user_id 
-     WHERE s.token = $1 AND s.expires_at > NOW()`,
+     WHERE s.id = $1::text AND s.expires_at > NOW()`,
     [token]
   )
   
@@ -121,4 +121,12 @@ export async function handleWebhook(event: any): Promise<{ type: string; process
     default:
       return { type: event.type, processed: false }
   }
+}
+export async function getCompanyByName(name: string): Promise<any | null> {
+  const db = getPool()
+  const result = await db.query(
+    'SELECT id, name, email, plan, stripe_customer_id FROM companies WHERE name = $1',
+    [name]
+  )
+  return result.rows[0] || null
 }

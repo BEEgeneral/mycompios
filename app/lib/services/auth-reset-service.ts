@@ -54,7 +54,7 @@ export async function verifyResetToken(userId: string, token: string): Promise<s
   
   const result = await db.query(
     `SELECT id FROM sessions 
-     WHERE user_id = $1 AND token = $2 AND expires_at > NOW() AND token LIKE 'reset_%'`,
+     WHERE user_id = $1 AND id = $2::text AND expires_at > NOW() AND token LIKE 'reset_%'`,
     [userId, 'reset_' + token]
   )
   
