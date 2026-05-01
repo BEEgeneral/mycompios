@@ -1,4 +1,4 @@
-// AUTH REGISTER - Register new user and company
+// AUTH REGISTER - Register new user and companyId
 
 import { NextResponse } from 'next/server'
 import { checkEmailExists, createCompany, createNewUser, createRegistrationSession, initializeTrialStatus, initializeEmailSequence } from '../../lib/services/register-service'
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // Create company
+    // Create companyId
     const { companyId, trialExpiresAt } = await createCompany({
       name: company,
       email,
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       name,
       email,
       password,
-      company
+      companyId
     })
 
     // Create session
