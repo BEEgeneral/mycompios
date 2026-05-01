@@ -13,10 +13,11 @@ export default function DashboardLayout({
               <span className="text-amber-500">My</span>Compi
             </a>
             <nav className="flex items-center gap-6">
-              <a href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</a>
-              <a href="/autonomous" className="text-orange-500 font-semibold">Autonomous</a>
+              <a href="/dashboard" className="text-orange-500 font-semibold">Dashboard</a>
+              <a href="/autonomous" className="text-gray-600 hover:text-gray-900">Autonomous</a>
               <a href="/missions" className="text-gray-600 hover:text-gray-900">Missions</a>
               <a href="/chat" className="text-gray-600 hover:text-gray-900">Chat</a>
+              <a href="/dashboard/revenue" className="text-gray-600 hover:text-gray-900">Revenue</a>
             </nav>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-500">Alberto Gala</span>
