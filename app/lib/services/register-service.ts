@@ -26,7 +26,7 @@ function getPool(): Pool {
 export interface RegistrationResult {
   success: boolean
   userId: string
-  companyId: string
+  company: string
   token: string
   trial_expires_at: string
   user: {
@@ -81,7 +81,7 @@ export async function createNewUser(data: {
   name: string
   email: string
   password: string
-  companyId: string
+  company: string
 }): Promise<{ userId: string; name: string; email: string }> {
   const db = getPool()
   
@@ -90,10 +90,10 @@ export async function createNewUser(data: {
   const now = new Date().toISOString()
 
   const result = await db.query(
-    `INSERT INTO app_user (id, name, email, password_hash, created_at)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO app_user (id, name, email, company, password_hash, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING id, name, email`,
-    [userId, data.name, data.email.toLowerCase(), pwHash, now]
+    [userId, data.name, data.email.toLowerCase(), data.company, pwHash, now]
   )
 
   return { userId: result.rows[0].id, name: result.rows[0].name, email: result.rows[0].email }
@@ -118,7 +118,7 @@ export async function initializeTrialStatus(companyId: string, trialExpiresAt: s
   const db = getPool()
   await db.query(
     `INSERT INTO trial_status (company_id, trial_ends_at, has_trial, trial_converted, messages_used_today, created_at)
-     VALUES ($1, $2, $3, $4, $5)`,
+     VALUES ($1, $2, $3, $4, $5, $6)`,
     [companyId, trialExpiresAt, true, false, 0, new Date().toISOString()]
   )
 }
