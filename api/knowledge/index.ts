@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    let body = {}
+    let body: Record<string, any> = {}
     try { body = await req.json() } catch { /* empty */ }
     const { action, company_id, query: searchQuery, content, entity_type } = body
 

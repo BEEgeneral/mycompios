@@ -76,7 +76,7 @@ export async function POST(req: Request) {
   if (req.method === 'OPTIONS') return new NextResponse(null, { status: 204, headers })
 
   try {
-    let body = {}
+    let body: Record<string, any> = {}
     try { body = await req.json() } catch { /* empty */ }
     const { action, company_id, data } = body
 
