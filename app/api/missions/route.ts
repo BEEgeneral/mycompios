@@ -1,24 +1,11 @@
 /**
  * Missions API - Get company missions
  * GET /api/missions?company_id=XXX
- * 
- * Returns missions for dashboard display
+ * Uses pipeline/index.ts (Polsia-style services layer)
  */
 
 import { NextResponse } from 'next/server'
-
-function getDbPool() {
-  const { Pool } = require('pg')
-  return new Pool({
-    host: process.env.NEON_HOST,
-    port: 5432,
-    database: process.env.NEON_DB,
-    user: process.env.NEON_USER,
-    password: process.env.NEON_PASSWORD,
-    ssl: true,
-    max: 1,
-  })
-}
+import { getActiveMissions } from '../../lib/pipeline'
 
 export async function GET(req: Request) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -31,26 +18,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'company_id required' }, { status: 400, headers })
     }
     
-    const pool = getDbPool()
-    
-    // Get missions for this company
-    const result = await pool.query(
-      `SELECT id, name, description, agent_id, status, schedule, stage, 
-              mission_statement, created_at, updated_at
-       FROM missions 
-       WHERE company_id = $1 
-       ORDER BY created_at DESC 
-       LIMIT 20`,
-      [companyId]
-    )
-    
-    await pool.end()
+    const missions = await getActiveMissions(companyId)
     
     return NextResponse.json({
-      missions: result.rows
+      missions
     }, { headers })
     
   } catch (err) {
+    console.error('Missions API error:', err)
     return NextResponse.json({ error: err.message }, { status: 500, headers })
   }
 }

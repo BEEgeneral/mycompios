@@ -1,22 +1,11 @@
 /**
  * Credits API - Get company credits
  * GET /api/credits?company_id=XXX
+ * Uses company-service.ts (Polsia-style services layer)
  */
 
 import { NextResponse } from 'next/server'
-
-function getDbPool() {
-  const { Pool } = require('pg')
-  return new Pool({
-    host: process.env.NEON_HOST,
-    port: 5432,
-    database: process.env.NEON_DB,
-    user: process.env.NEON_USER,
-    password: process.env.NEON_PASSWORD,
-    ssl: true,
-    max: 1,
-  })
-}
+import { getCompany } from '../../lib/services/company-service'
 
 export async function GET(req: Request) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -29,21 +18,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'company_id required' }, { status: 400, headers })
     }
     
-    const pool = getDbPool()
+    const company = await getCompany(companyId)
     
-    // Get company credits
-    const result = await pool.query(
-      `SELECT credits_total, credits_used FROM companies WHERE id = $1`,
-      [companyId]
-    )
-    
-    await pool.end()
-    
-    if (result.rows.length === 0) {
+    if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404, headers })
     }
     
-    const { credits_total = 5, credits_used = 0 } = result.rows[0]
+    const credits_total = company.credits_total || 5
+    const credits_used = company.credits_used || 0
     
     return NextResponse.json({
       credits: {
