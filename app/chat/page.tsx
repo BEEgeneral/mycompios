@@ -1,282 +1,156 @@
 'use client'
+
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 
-const C = { dark: '#0D0D0D', cream: '#F4F4F5', muted: '#8E8EA0', white: '#FFFFFF', border: '#E5E5E5', green: '#10A37F' }
-
-interface Message { role: 'user' | 'assistant'; content: string; agent?: string }
-interface Conversation { id: string; title: string; messages: Message[]; updated_at: string }
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  agent?: string
+}
 
 export default function ChatPage() {
-  const router = useRouter()
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: '¡Hola! Soy Paco, tu Director de Operaciones. ¿En qué puedo ayudarte hoy?',
+      agent: 'paco'
+    }
+  ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => {
-    const token = sessionStorage.getItem('mc_token')
-    if (!token) { router.push('/login'); return }
-    loadConversations()
-  }, [])
-
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
   }, [messages])
 
-  const loadConversations = () => {
-    const saved = localStorage.getItem('mc_conversations')
-    if (saved) {
-      const convs: Conversation[] = JSON.parse(saved)
-      setConversations(convs)
-      if (convs.length > 0) {
-        setActiveId(convs[0].id)
-        setMessages(convs[0].messages)
-      }
-    } else {
-      const first: Conversation = { id: Date.now().toString(), title: 'Nueva conversación', messages: [], updated_at: new Date().toISOString() }
-      setConversations([first])
-      setActiveId(first.id)
-      localStorage.setItem('mc_conversations', JSON.stringify([first]))
-    }
-  }
-
-  const saveConversations = (convs: Conversation[]) => {
-    setConversations(convs)
-    localStorage.setItem('mc_conversations', JSON.stringify(convs))
-  }
-
-  const selectConversation = (id: string) => {
-    const conv = conversations.find(c => c.id === id)
-    if (conv) { setActiveId(id); setMessages(conv.messages); setSidebarOpen(false) }
-  }
-
-  const newConversation = () => {
-    const conv: Conversation = { id: Date.now().toString(), title: 'Nueva conversación', messages: [], updated_at: new Date().toISOString() }
-    const updated = [conv, ...conversations]
-    saveConversations(updated)
-    setActiveId(conv.id)
-    setMessages([])
-    setSidebarOpen(false)
-  }
-
-  const updateConversation = (convId: string, newMessages: Message[]) => {
-    const updated = conversations.map(c => {
-      if (c.id !== convId) return c
-      const title = c.messages.length === 0 && newMessages.length > 1
-        ? newMessages[1]?.content?.slice(0, 40) + (newMessages[1]?.content?.length > 40 ? '...' : '')
-        : c.title
-      return { ...c, messages: newMessages, updated_at: new Date().toISOString(), title }
-    })
-    saveConversations(updated)
-  }
-
-  const sendMessage = async () => {
+  async function handleSend() {
     if (!input.trim() || loading) return
-    const token = sessionStorage.getItem('mc_token')
-    if (!token) return
-
-    const userMsg: Message = { role: 'user', content: input.trim() }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
+    
+    const userMessage = input.trim()
     setInput('')
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setLoading(true)
 
     try {
+      const token = localStorage.getItem('mc_token')
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ agent_id: 'paco', message: input.trim() })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ 
+          message: userMessage,
+          agent_id: 'paco'
+        })
       })
+      
       const data = await res.json()
-      if (data.error) {
-        const errMsg: Message = { role: 'assistant', content: `Error: ${data.error}`, agent: 'paco' }
-        setMessages([...newMessages, errMsg])
-        updateConversation(activeId!, [...newMessages, errMsg])
-      } else {
-        const agentMsg: Message = { role: 'assistant', content: data.response, agent: 'paco' }
-        setMessages([...newMessages, agentMsg])
-        updateConversation(activeId!, [...newMessages, agentMsg])
+      
+      if (data.response) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.response,
+          agent: 'paco'
+        }])
+      } else if (data.error) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Lo siento, hubo un error. ¿Puedes repetir?',
+          agent: 'paco'
+        }])
       }
-    } catch (e: any) {
-      const errMsg: Message = { role: 'assistant', content: 'Error de conexión', agent: 'paco' }
-      setMessages([...newMessages, errMsg])
-      updateConversation(activeId!, [...newMessages, errMsg])
+    } catch (e) {
+      setMessages(prev => [...prev, {
+        role: 'assistant', 
+        content: 'Error de conexión. Intenta de nuevo.',
+        agent: 'paco'
+      }])
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
-    inputRef.current?.focus()
   }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
-  }
-
-  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'Poppins, system-ui, sans-serif', background: C.white }}>
-      <style>{`
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        @media (max-width: 640px) {
-          .sidebar { width: 100% !important; min-width: 100% !important; }
-          .msg-bubble { max-width: 90% !important; }
-        }
-        body { background: ${C.white} }
-      `}</style>
-
-      {/* SIDEBAR */}
-      <div className="sidebar" style={{
-        width: 260, minWidth: 260, background: '#F9F9F9', borderRight: `1px solid ${C.border}`,
-        display: 'flex', flexDirection: 'column', height: '100vh',
-        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        position: 'fixed', zIndex: 100, transition: 'transform 0.2s', left: 0
-      }}>
-        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: '15px', color: C.dark }}>🎯 My Compi</span>
-            <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: C.muted }}>✕</button>
-          </div>
+    <div className="flex flex-col h-[calc(100vh-64px)]">
+      {/* Header */}
+      <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold">
+          🎯
         </div>
+        <div>
+          <h1 className="font-semibold text-gray-900">Paco</h1>
+          <p className="text-xs text-gray-500">Director de Operaciones • Responde en segundos</p>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          <span className="text-xs text-green-600">Online</span>
+        </div>
+      </div>
 
-        <div style={{ padding: '8px 16px' }}>
-          <button onClick={newConversation} style={{
-            width: '100%', padding: '10px 14px', background: 'transparent',
-            border: `1px solid ${C.border}`, borderRadius: 8, fontSize: '13px', fontWeight: 500,
-            cursor: 'pointer', textAlign: 'left', color: C.dark
-          }}>
-            + Nueva conversación
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        {messages.map((msg, i) => (
+          <div 
+            key={i}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div 
+              className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                msg.role === 'user' 
+                  ? 'bg-amber-400 text-gray-900 rounded-br-md' 
+                  : 'bg-white shadow-sm text-gray-800 rounded-bl-md'
+              }`}
+            >
+              {msg.role === 'assistant' && (
+                <div className="text-xs text-amber-600 mb-1 font-medium">Paco</div>
+              )}
+              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-white rounded-2xl rounded-bl-md shadow-sm px-4 py-3">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="bg-white border-t p-4">
+        <div className="flex gap-2 max-w-3xl mx-auto">
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSend()}
+            placeholder="Pregunta a Paco..."
+            className="flex-1 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-amber-400 text-sm"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || loading}
+            className="px-6 py-3 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-full font-medium text-white text-sm"
+          >
+            Enviar
           </button>
         </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-          {conversations.map(conv => (
-            <button key={conv.id} onClick={() => selectConversation(conv.id)} style={{
-              width: '100%', padding: '10px 12px', background: conv.id === activeId ? C.cream : 'transparent',
-              border: 'none', borderRadius: 8, textAlign: 'left', cursor: 'pointer', marginBottom: '4px'
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: conv.id === activeId ? 600 : 400, color: C.dark, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {conv.title || 'Nueva conversación'}
-              </div>
-              <div style={{ fontSize: '12px', color: C.muted, marginTop: '2px' }}>{formatTime(conv.updated_at)}</div>
-            </button>
-          ))}
-        </div>
-
-        <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}` }}>
-          <a href="/dashboard" style={{ display: 'block', padding: '8px 12px', fontSize: '13px', color: C.muted, textDecoration: 'none' }}>← Panel de Control</a>
-        </div>
+        <p className="text-center text-xs text-gray-400 mt-2">
+          Paco organiza agentes y ejecuta tareas. Los cambios pueden tardar unos segundos.
+        </p>
       </div>
-
-      {/* OVERLAY */}
-      {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.3)', zIndex: 99, display: 'none'
-        }} className="sidebar-overlay" />
-      )}
-
-      {/* MAIN CHAT */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', minWidth: 0 }}>
-        <div style={{ padding: '14px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: C.muted, padding: '4px' }}>☰</button>
-          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: C.muted, textDecoration: 'none', fontSize: '14px', marginLeft: '8px' }}>← Panel de Control</a>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🎯</span>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '15px', color: C.dark }}>Paco</div>
-              <div style={{ fontSize: '12px', color: C.green }}>● En línea</div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', padding: '24px 16px 16px' }}>
-            {messages.length === 0 && (
-              <div style={{ textAlign: 'center', paddingTop: '60px' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
-                <h2 style={{ fontSize: '24px', fontWeight: 500, color: C.dark, marginBottom: '8px' }}>Cuando quieras.</h2>
-                <p style={{ color: C.muted, fontSize: '15px', maxWidth: 400, margin: '0 auto' }}>
-                  Cuéntame qué necesitas y coordinaré a tu equipo de Compis para ayudarte.
-                </p>
-              </div>
-            )}
-
-            {messages.map((msg, i) => (
-              <div key={i} style={{
-                display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                marginBottom: '24px'
-              }}>
-                {msg.role === 'user' ? (
-                  <div className="msg-bubble" style={{
-                    background: C.cream, borderRadius: 18, padding: '10px 16px',
-                    maxWidth: '80%', fontSize: '15px', lineHeight: 1.6, color: C.dark
-                  }}>
-                    {msg.content}
-                  </div>
-                ) : (
-                  <div className="msg-bubble" style={{ maxWidth: '80%', fontSize: '15px', lineHeight: 1.7, color: C.dark }}>
-                    {msg.content}
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: C.muted }}>Copy</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {loading && (
-              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', gap: '4px', padding: '12px' }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: C.muted, animation: `bounce 1s ${i * 0.15}s infinite` }} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        <div style={{ padding: '12px 16px 24px', borderTop: `1px solid ${C.border}` }}>
-          <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', position: 'relative' }}>
-            <div style={{
-              display: 'flex', alignItems: 'flex-end', background: C.cream,
-              borderRadius: 24, padding: '4px 4px 4px 16px', border: `1px solid ${C.border}`
-            }}>
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Escribe tu mensaje..."
-                rows={1}
-                style={{
-                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                  fontSize: '15px', fontFamily: 'inherit', resize: 'none',
-                  padding: '10px 0', maxHeight: 100, overflowY: 'auto'
-                }}
-              />
-              <button onClick={sendMessage} disabled={!input.trim() || loading} style={{
-                background: input.trim() && !loading ? C.dark : C.muted,
-                color: C.white, border: 'none', borderRadius: 20,
-                padding: '8px 18px', fontSize: '14px', fontWeight: 600,
-                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                margin: '4px', whiteSpace: 'nowrap'
-              }}>
-                {loading ? '...' : 'Enviar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <style>{`@keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }`}</style>
     </div>
   )
 }
