@@ -66,7 +66,7 @@ export async function createSession(userId: string, expiresInHours = 24): Promis
   const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
   
   await db.query(
-    `INSERT INTO sessions (user_id, token, expires_at)
+    `INSERT INTO sessions (id, user_id, expires_at)
      VALUES ($1, $2, $3)`,
     [userId, token, expiresAt]
   )

@@ -86,9 +86,9 @@ export async function createAuthSession(userId: string): Promise<{ token: string
   const expiresAt = new Date(Date.now() + SESSION_DURATION).toISOString()
   
   await db.query(
-    `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
-     VALUES ($1, $2, $3, NOW(), $4)`,
-    [randomUUID(), userId, token, expiresAt]
+    `INSERT INTO sessions (id, user_id, created_at, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [token, userId, new Date().toISOString(), expiresAt]
   )
   
   return { token, expiresAt }

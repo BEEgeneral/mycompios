@@ -41,9 +41,9 @@ export async function createResetToken(userId: string): Promise<string> {
   
   // Create session with reset token
   await db.query(
-    `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
-     VALUES ($1, $2, $3, NOW(), $4)`,
-    [randomUUID(), userId, resetToken, expiresAt]
+    `INSERT INTO sessions (id, user_id, created_at, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [randomUUID(), userId, new Date().toISOString(), expiresAt]
   )
   
   return resetToken.replace('reset_', '')
@@ -83,9 +83,9 @@ export async function createAuthResetSession(userId: string): Promise<{ token: s
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
   
   await db.query(
-    `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
-     VALUES ($1, $2, $3, NOW(), $4)`,
-    [randomUUID(), userId, token, expiresAt]
+    `INSERT INTO sessions (id, user_id, created_at, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [randomUUID(), userId, new Date().toISOString(), expiresAt]
   )
   
   return { token, expiresAt }
