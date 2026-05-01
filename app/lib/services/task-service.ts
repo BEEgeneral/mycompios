@@ -48,6 +48,7 @@ export interface TaskFilters {
   status?: string
   agent_type?: string
   company_id?: string
+  mission_id?: string
   limit?: number
 }
 
@@ -92,7 +93,7 @@ export async function getTask(id: string): Promise<Task | null> {
  */
 export async function listTasks(filters: TaskFilters = {}): Promise<Task[]> {
   const db = getPool()
-  const { status, agent_type, limit = 50 } = filters
+  const { status, agent_type, company_id, mission_id, limit = 50 } = filters
   
   let query = 'SELECT * FROM mission_tasks WHERE 1=1'
   const params: any[] = []
@@ -105,6 +106,14 @@ export async function listTasks(filters: TaskFilters = {}): Promise<Task[]> {
   if (agent_type) {
     query += ` AND agent_id = $${paramIndex++}`
     params.push(agent_type)
+  }
+  if (company_id) {
+    query += ` AND company_id = $${paramIndex++}`
+    params.push(company_id)
+  }
+  if (mission_id) {
+    query += ` AND mission_id = $${paramIndex++}`
+    params.push(mission_id)
   }
   
   query += ` ORDER BY created_at DESC LIMIT $${paramIndex++}`
