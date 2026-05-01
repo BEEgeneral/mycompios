@@ -1,12 +1,14 @@
+// AUTH REGISTER - Register new user and company
+
 import { NextResponse } from 'next/server'
-import crypto, { createHash, randomBytes, randomUUID } from 'crypto'
+import { checkEmailExists, createCompany, createNewUser, createRegistrationSession, initializeTrialStatus, initializeEmailSequence } from '../../lib/services/register-service'
 
 // Rate limiting
 const ipLimits = new Map()
 const RATE_MAX = 5
 const RATE_WINDOW = 3600000
 
-function checkRateLimit(ip) {
+function checkRateLimit(ip: string): number {
   const now = Date.now()
   const record = ipLimits.get(ip) || { count: 0, resetAt: now + RATE_WINDOW }
   if (now > record.resetAt) {
@@ -21,23 +23,6 @@ function checkRateLimit(ip) {
   return 0
 }
 
-function getClientIP(req) {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-}
-
-function getDbPool() {
-  const { Pool } = require('pg')
-  return new Pool({
-    host: process.env.NEON_HOST,
-    port: 5432,
-    database: process.env.NEON_DB,
-    user: process.env.NEON_USER,
-    password: process.env.NEON_PASSWORD,
-    ssl: true,
-    max: 1,
-  })
-}
-
 export async function POST(req: Request) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -50,7 +35,7 @@ export async function POST(req: Request) {
     return new NextResponse('', { status: 200, headers })
   }
 
-  const ip = getClientIP(req)
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
   const retryAfter = checkRateLimit(ip)
   if (retryAfter > 0) {
     return NextResponse.json(
@@ -76,17 +61,8 @@ export async function POST(req: Request) {
       )
     }
 
-    const pool = getDbPool()
-    const now = new Date().toISOString()
-
     // Check if email exists
-    const existing = await pool.query(
-      'SELECT id FROM app_user WHERE LOWER(email) = LOWER($1)',
-      [email]
-    )
-
-    if (existing.rows.length > 0) {
-      await pool.end()
+    if (await checkEmailExists(email)) {
       return NextResponse.json(
         { error: 'Ya existe una cuenta con este email', code: 'EMAIL_EXISTS' },
         { status: 409, headers }
@@ -94,74 +70,46 @@ export async function POST(req: Request) {
     }
 
     // Create company
-    const trialExpiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-    const companyId = crypto.randomUUID()
-    const apiKey = 'mc_' + crypto.randomUUID().replace(/-/g, '').substring(0, 24)
-
-    await pool.query(
-      `INSERT INTO companies (id, name, email, plan, trial_expires_at, api_key, created_at, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [companyId, company, email.toLowerCase(), 'trial', trialExpiresAt, apiKey, now, JSON.stringify({ sector: sector || 'general', vision: vision || '', website: website || '' })]
-    )
-
-    // Hash password
-    const salt = 'MYCOMPI_SALT_2026'
-    const passwordHash = createHash('sha256').update(password + salt).digest('hex')
+    const { companyId, trialExpiresAt } = await createCompany({
+      name: company,
+      email,
+      sector,
+      vision,
+      website
+    })
 
     // Create user
-    const userId = crypto.randomUUID()
-    const userResult = await pool.query(
-      `INSERT INTO app_user (id, name, email, company_id, password_hash, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, email`,
-      [userId, name, email.toLowerCase(), companyId, passwordHash, now]
-    )
-
-    const userData = userResult.rows[0]
+    const userData = await createNewUser({
+      name,
+      email,
+      password,
+      companyId
+    })
 
     // Create session
-    const token = crypto.randomBytes(32).toString('hex') + '_' + userData.id
-    const sessionDuration = 30 * 24 * 60 * 60 * 1000
+    const token = await createRegistrationSession(userData.userId)
 
-    await pool.query(
-      `INSERT INTO sessions (id, user_id, token, created_at, expires_at)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [crypto.randomUUID(), userData.id, token, now, new Date(Date.now() + sessionDuration).toISOString()]
-    )
+    // Initialize trial and email sequence
+    await initializeTrialStatus(companyId, trialExpiresAt)
+    await initializeEmailSequence(companyId)
 
-    // Initialize trial_status
-    await pool.query(
-      `INSERT INTO trial_status (company_id, trial_ends_at, has_trial, trial_converted, messages_used_today, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [companyId, trialExpiresAt, true, false, 0, now]
-    )
-
-    // Initialize email_sequence_status
-    await pool.query(
-      `INSERT INTO email_sequence_status (company_id, sequence, step, sent_at, created_at)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [companyId, 'welcome', 0, now, now]
-    )
-
-    await pool.end()
-
-    // Send welcome email (async, don't wait)
+    // Send welcome email (async)
     sendWelcomeEmail(email, company, name).catch(e => console.log('Email error:', e.message))
 
     const response = NextResponse.json({
       success: true,
-      userId: userData.id,
-      companyId: companyId,
+      userId: userData.userId,
+      companyId,
       token,
       trial_expires_at: trialExpiresAt,
       onboarding_step: 1,
-      user: { id: userData.id, name: userData.name, email: userData.email }
+      user: { id: userData.userId, name: userData.name, email: userData.email }
     }, { status: 200, headers })
 
     response.cookies.set('mc_token', token, {
       httpOnly: true,
       path: '/',
-      maxAge: sessionDuration,
+      maxAge: 30 * 24 * 60 * 60,
       sameSite: 'lax'
     })
 
