@@ -1,5 +1,5 @@
 /**
- * DB Migration endpoint - Create tables
+ * DB Migration endpoint - Create/fix tables
  * POST /api/db-migrate
  */
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
 
   try {
-    // Add missing columns to agent_runs
+    // Add ALL missing columns to agent_runs
     const columns = [
       'result_summary TEXT',
       'completed_at TIMESTAMPTZ',
@@ -30,12 +30,14 @@ export async function POST(req: Request) {
       'cost_usd DECIMAL(10,6) DEFAULT 0',
       'duration_secs INTEGER DEFAULT 0',
       'tokens_used INTEGER DEFAULT 0',
+      'input_context JSONB DEFAULT \'{}\'',
+      'output JSONB DEFAULT \'{}\'',
     ]
     
     for (const col of columns) {
       try { 
         await pool.query(`ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS ${col}`) 
-      } catch (e) { /* ignore */ }
+      } catch (e) { /* ignore - column might exist */ }
     }
 
     // Create indexes
@@ -45,8 +47,20 @@ export async function POST(req: Request) {
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_agent_runs_created ON agent_runs(created_at DESC)`)
     } catch (e) { /* ignore */ }
 
+    // Verify the table has the columns we need
+    const cols = await pool.query(`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'agent_runs'
+    `)
+    
+    const colNames = cols.rows.map(r => r.column_name)
+
     await pool.end()
-    return NextResponse.json({ success: true, message: 'Migration done' }, { headers })
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Migration done',
+      columns: colNames
+    }, { headers })
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })
   }
