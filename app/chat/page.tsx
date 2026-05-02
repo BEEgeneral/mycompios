@@ -77,10 +77,10 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen sm:h-[calc(100vh-64px)] bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50" style={{ maxWidth: '100vw', overflow: 'hidden' }}>
       {/* Header */}
-      <div className="bg-white border-b px-3 py-2.5 flex items-center gap-2.5 flex-shrink-0">
-        <div className="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+      <div className="bg-white border-b px-3 py-2.5 flex items-center gap-2 flex-shrink-0" style={{ width: '100%' }}>
+        <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
           🎯
         </div>
         <div className="flex-1 min-w-0">
@@ -92,14 +92,14 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ width: '100%' }}>
         {messages.map((msg, i) => (
           <div 
             key={i}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div 
-              className={`max-w-[88%] rounded-2xl px-3 py-2 ${
+              className={`max-w-[85%] rounded-2xl px-3 py-2 ${
                 msg.role === 'user' 
                   ? 'bg-amber-400 text-gray-900 rounded-br-md' 
                   : 'bg-white shadow-sm text-gray-800 rounded-bl-md'
@@ -127,15 +127,16 @@ export default function ChatPage() {
       </div>
 
       {/* Input - fixed bottom */}
-      <div className="bg-white border-t px-3 py-3 flex-shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="bg-white border-t px-3 py-3 flex-shrink-0" style={{ width: '100%' }}>
+        <div className="flex items-center gap-2" style={{ width: '100%' }}>
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             placeholder="Pregunta a Paco..."
-            className="flex-1 w-full min-w-0 px-3 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-amber-400 text-sm"
+            className="flex-1 px-3 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-amber-400 text-sm"
+            style={{ maxWidth: 'calc(100% - 48px)' }}
           />
           <button
             onClick={handleSend}

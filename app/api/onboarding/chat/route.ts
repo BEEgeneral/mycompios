@@ -225,7 +225,7 @@ export async function POST(req: Request) {
       const tasks = generateInitialTasks(answers)
 
       return NextResponse.json({
-        complete: true,
+        done: true,
         mission,
         tasks,
         answers,
