@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getActiveMissions, shouldRunMission } from '../../../lib/pipeline'
+import { getActiveMissions } from '../../../lib/pipeline'
 
 export async function GET() {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -20,7 +20,6 @@ export async function GET() {
       ssl: true,
     })
 
-    // Get all companies
     const companies = await pool.query('SELECT id FROM companies LIMIT 10')
     
     const dueMissions = []
@@ -28,7 +27,10 @@ export async function GET() {
     for (const company of companies.rows) {
       const missions = await getActiveMissions(company.id)
       for (const mission of missions) {
-        if (shouldRunMission(mission)) {
+        const hoursSinceLastRun = mission.last_run_at 
+          ? (Date.now() - new Date(mission.last_run_at).getTime()) / (1000 * 60 * 60)
+          : 999
+        if (hoursSinceLastRun >= 24) {
           dueMissions.push(mission)
         }
       }

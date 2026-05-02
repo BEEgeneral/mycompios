@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { queueTask, touchMission } from '../../../lib/pipeline'
+import { queueTask } from '../../../lib/pipeline'
 
 export async function POST(request: Request) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -22,19 +22,18 @@ export async function POST(request: Request) {
 
     const { mission_id } = await request.json()
     
-    // Get mission
     const missionResult = await pool.query(
       'SELECT * FROM missions WHERE id = $1',
       [mission_id]
     )
     
     if (!missionResult.rows.length) {
+      await pool.end()
       return NextResponse.json({ success: false, error: 'Mission not found' }, { status: 404, headers })
     }
     
     const mission = missionResult.rows[0]
     
-    // Generate task based on mission type
     let taskName = ''
     switch (mission.name) {
       case 'Daily Planning':
@@ -56,31 +55,18 @@ export async function POST(request: Request) {
         taskName = `task_${mission.name.toLowerCase().replace(' ', '_')}`
     }
     
-    // Queue task
-    const taskId = await queueTask(
-      mission_id,
-      taskName,
-      mission.agent_id,
-      'medium'
-    )
+    const taskId = await queueTask('default', taskName, mission.agent_id, 'medium')
     
-    // Touch mission
-    await touchMission(mission_id)
-    
+    await pool.query('UPDATE missions SET last_run_at = NOW() WHERE id = $1', [mission_id])
     await pool.end()
     
     return NextResponse.json({
       success: true,
       mission_id,
-      task_id: taskId,
-      task_name: taskName
+      task_id: taskId
     }, { headers })
     
   } catch (error) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500, headers })
   }
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*' } })
 }

@@ -1,7 +1,7 @@
 // STRIPE CHECKOUT - Create checkout session with plan selection
 
 import { NextResponse } from 'next/server'
-import { getUserBySessionToken, getCompanyById, getCompanyByName, createCheckoutSession } from '../../lib/services/stripe-service'
+import { getUserBySessionToken, getCompanyByName, createCheckoutSession } from '../../lib/services/stripe-service'
 
 export async function POST(req: Request) {
   const headers = {
@@ -23,18 +23,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Token requerido' }, { status: 401, headers })
     }
 
-    console.log('STEP1: getUserBySessionToken')
     const session = await getUserBySessionToken(token)
-    console.log('STEP1 result:', session)
-    
     if (!session) {
       return NextResponse.json({ error: 'Sesion invalida' }, { status: 401, headers })
     }
 
-    console.log('STEP2: getCompanyByName with company =', session.company)
     const company = await getCompanyByName(session.company)
-    console.log('STEP2 result:', company)
-    
     if (!company) {
       return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404, headers })
     }
@@ -53,18 +47,25 @@ export async function POST(req: Request) {
 
     if (stripeKey && stripeKey !== 'mock') {
       const stripe = require('stripe')(stripeKey)
+
       const checkoutSession = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
-        line_items: [{ price: selectedPrice, quantity: 1 }],
+        line_items: [{
+          price: selectedPrice,
+          quantity: 1,
+        }],
         mode: 'subscription',
         success_url: 'https://mycompi.com/dashboard?upgrade=success',
         cancel_url: 'https://mycompi.com/dashboard?upgrade=cancelled',
-        metadata: { company_id: company.id, company_name: company.name },
+        metadata: {
+          company_id: company.id,
+          company_name: company.name
+        },
         customer_email: company.email,
       })
+
       result = { sessionId: checkoutSession.id, url: checkoutSession.url ?? '' }
     } else {
-      console.log('MOCK MODE - STRIPE_SECRET_KEY:', stripeKey)
       result = await createCheckoutSession('cus_mock', selectedPrice, 'https://mycompi.com/dashboard?success', 'https://mycompi.com/dashboard?cancel')
     }
 

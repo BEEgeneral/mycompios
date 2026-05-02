@@ -6,11 +6,15 @@
 import { NextResponse } from 'next/server'
 import { getPendingTasks } from '../../../lib/pipeline'
 
-export async function GET() {
+export async function GET(request: Request) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
   
   try {
-    const tasks = await getPendingTasks(10)
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('company_id') || 'default'
+    const limit = searchParams.get('limit') || '10'
+    
+    const tasks = await getPendingTasks(companyId, parseInt(limit))
     
     return NextResponse.json({
       success: true,

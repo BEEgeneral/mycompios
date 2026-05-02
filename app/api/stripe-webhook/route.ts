@@ -1,6 +1,6 @@
-// STRIPE WEBHOOK - Handle Stripe events
+// Stripe Webhook Handler
 
-import { handleWebhook } from '../../lib/services/stripe-service'
+import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   const headers = {
@@ -9,29 +9,27 @@ export async function POST(req: Request) {
   }
 
   try {
-    const body = await req.text()
-    const sig = req.headers.get('stripe-signature')
+    const event = await req.json()
+    console.log('Stripe webhook event:', event.type)
 
-    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
-      return new Response(JSON.stringify({ error: 'Stripe not configured' }), { status: 500, headers })
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed':
+        console.log('Checkout completed:', event.data.object)
+        break
+      case 'customer.subscription.updated':
+        console.log('Subscription updated:', event.data.object)
+        break
+      case 'customer.subscription.deleted':
+        console.log('Subscription deleted:', event.data.object)
+        break
+      default:
+        console.log('Unhandled event type:', event.type)
     }
 
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
-
-    let event
-    try {
-      event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
-    } catch (err) {
-      console.error('Webhook signature error:', err.message)
-      return new Response('Webhook signature error', { status: 400, headers })
-    }
-
-    const result = await handleWebhook(event)
-
-    return new Response(JSON.stringify({ received: true, ...result }), { status: 200, headers })
-
+    return NextResponse.json({ received: true }, { headers })
   } catch (err) {
     console.error('Webhook error:', err)
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers })
+    return NextResponse.json({ error: err.message }, { status: 400, headers })
   }
 }
