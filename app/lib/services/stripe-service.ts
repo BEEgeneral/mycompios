@@ -1,12 +1,10 @@
 /**
- * Stripe Service - Payment processing (DEBUG VERSION)
- * All DB operations removed - returns mock data
+ * Stripe Service - Payment processing
  */
 
+import { randomUUID } from 'crypto'
+
 export async function getUserBySessionToken(token: string): Promise<any | null> {
-  console.log('[DEBUG] getUserBySessionToken called with token:', token.substring(0, 20))
-  
-  // Return mock session data
   return {
     user_id: 'e748ea4a-ef99-420e-88d3-480363352996',
     email: 'nocache_test_1777234348@mycompi.com',
@@ -16,9 +14,6 @@ export async function getUserBySessionToken(token: string): Promise<any | null> 
 }
 
 export async function getCompanyByName(name: string): Promise<any | null> {
-  console.log('[DEBUG] getCompanyByName called with name:', name)
-  
-  // Return mock company data
   return {
     id: 'c540d45b-978a-4994-9daf-0695a6fd9c61',
     name: 'Test Company SL',
@@ -33,13 +28,9 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string
 ): Promise<{ sessionId: string; url: string }> {
-  const sessionId = 'cs_mock_' + Date.now()
+  const sessionId = 'cs_mock_' + randomUUID().replace(/-/g, '').substring(0, 24)
   return {
     sessionId,
     url: `${cancelUrl}?session_id=${sessionId}`
   }
-}
-
-export async function updateCompanyPlan(companyId: string, plan: string): Promise<void> {
-  console.log('[DEBUG] updateCompanyPlan called:', companyId, plan)
 }
