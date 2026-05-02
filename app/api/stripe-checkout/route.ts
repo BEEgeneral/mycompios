@@ -23,12 +23,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Token requerido' }, { status: 401, headers })
     }
 
-    const session = await getUserBySessionToken(token)
+    // Step 1: getUserBySessionToken
+    let session
+    try {
+      session = await getUserBySessionToken(token)
+      console.log('STEP1 session:', session ? 'got session' : 'null')
+    } catch (e: any) {
+      console.error('STEP1 error:', e.message)
+      return NextResponse.json({ success: false, error: 'STEP1: ' + e.message }, { status: 500, headers })
+    }
+    
     if (!session) {
       return NextResponse.json({ error: 'Sesion invalida' }, { status: 401, headers })
     }
 
-    const company = await getCompanyByName(session.company)
+    // Step 2: getCompanyByName  
+    let company
+    try {
+      company = await getCompanyByName(session.company)
+      console.log('STEP2 company:', company ? 'got company' : 'null')
+    } catch (e: any) {
+      console.error('STEP2 error:', e.message)
+      return NextResponse.json({ success: false, error: 'STEP2: ' + e.message }, { status: 500, headers })
+    }
+    
     if (!company) {
       return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404, headers })
     }
@@ -71,7 +89,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, ...result }, { status: 200, headers })
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('Stripe checkout error:', err)
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers })
   }
