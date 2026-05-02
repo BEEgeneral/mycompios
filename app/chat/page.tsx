@@ -77,31 +77,31 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen sm:h-[calc(100vh-64px)]">
-      {/* Header */}
-      <div className="bg-white border-b px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
-        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-sm sm:text-base">
+    <div className="flex flex-col h-screen sm:h-[calc(100vh-64px)] bg-gray-50">
+      {/* Header - siempre visible */}
+      <div className="bg-white border-b px-4 py-3 flex items-center gap-3 flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold">
           🎯
         </div>
-        <div className="min-w-0">
-          <h1 className="font-semibold text-gray-900 text-sm sm:text-base truncate">Paco</h1>
-          <p className="text-xs text-gray-500 hidden sm:block">Director de Operaciones • Responde en segundos</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-semibold text-gray-900 truncate">Paco</h1>
+          <p className="text-xs text-gray-500 hidden sm:block">Director de Operaciones</p>
         </div>
-        <div className="ml-auto flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
           <span className="text-xs text-green-600 hidden sm:inline">Online</span>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50">
+      {/* Messages - scroll area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
           <div 
             key={i}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div 
-              className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 sm:px-4 py-2 sm:py-3 ${
+              className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
                 msg.role === 'user' 
                   ? 'bg-amber-400 text-gray-900 rounded-br-md' 
                   : 'bg-white shadow-sm text-gray-800 rounded-bl-md'
@@ -117,7 +117,7 @@ export default function ChatPage() {
         {loading && (
           <div className="flex justify-start">
             <div className="bg-white rounded-2xl rounded-bl-md shadow-sm px-4 py-3">
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
@@ -128,21 +128,21 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="bg-white border-t p-3 sm:p-4">
-        <div className="flex gap-2 max-w-3xl mx-auto">
+      {/* Input - fijo abajo */}
+      <div className="bg-white border-t p-4 flex-shrink-0">
+        <div className="flex gap-3 max-w-4xl mx-auto">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             placeholder="Pregunta a Paco..."
-            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-full border border-gray-200 focus:outline-none focus:border-amber-400 text-sm"
+            className="flex-1 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-amber-400 text-sm"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-full font-medium text-white text-sm flex-shrink-0"
+            className="px-6 py-3 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-full font-medium text-white text-sm flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
