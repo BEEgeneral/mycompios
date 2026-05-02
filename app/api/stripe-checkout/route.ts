@@ -28,7 +28,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Sesion invalida' }, { status: 401, headers })
     }
 
-    console.log('DEBUG: session result:', session)
+    console.log('DEBUG: session result:', JSON.stringify(session))
+    console.log('DEBUG: session.user_id type:', typeof session.user_id, session.user_id)
     console.log('DEBUG: looking for company:', session.company)
 
     const company = await getCompanyByName(session.company)
