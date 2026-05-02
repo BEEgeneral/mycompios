@@ -30,7 +30,7 @@ export interface CheckoutResult {
 export async function getCompanyById(companyId: string): Promise<any | null> {
   const db = getPool()
   const result = await db.query(
-    'SELECT id, name, email, plan, stripe_customer_id FROM companies WHERE id = $1',
+    'SELECT id, name, email, plan, stripe_customer_id FROM companies WHERE id = $1::uuid',
     [companyId]
   )
   return result.rows[0] || null
@@ -39,7 +39,7 @@ export async function getCompanyById(companyId: string): Promise<any | null> {
 export async function updateCompanyStripe(companyId: string, customerId: string): Promise<void> {
   const db = getPool()
   await db.query(
-    'UPDATE companies SET stripe_customer_id = $2 WHERE id = $1',
+    'UPDATE companies SET stripe_customer_id = $2 WHERE id = $1::uuid',
     [companyId, customerId]
   )
 }
@@ -75,7 +75,7 @@ export async function getUserBySessionToken(token: string): Promise<any | null> 
 export async function createSubscription(companyId: string, plan: string): Promise<void> {
   const db = getPool()
   await db.query(
-    `UPDATE companies SET plan = $2 WHERE id = $1`,
+    `UPDATE companies SET plan = $2 WHERE id = $1::uuid`,
     [companyId, plan]
   )
 }
