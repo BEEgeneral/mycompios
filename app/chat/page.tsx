@@ -77,38 +77,38 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen sm:h-[calc(100vh-64px)] bg-gray-50">
+    <div className="flex flex-col h-screen sm:h-[calc(100vh-64px)] bg-gray-50 overflow-hidden">
       {/* Header - siempre visible */}
-      <div className="bg-white border-b px-4 py-3 flex items-center gap-3 flex-shrink-0">
-        <div className="w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold">
+      <div className="bg-white border-b px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0">
           🎯
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-gray-900 truncate">Paco</h1>
+          <h1 className="font-semibold text-gray-900 text-sm sm:text-base truncate">Paco</h1>
           <p className="text-xs text-gray-500 hidden sm:block">Director de Operaciones</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></span>
           <span className="text-xs text-green-600 hidden sm:inline">Online</span>
         </div>
       </div>
 
       {/* Messages - scroll area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
         {messages.map((msg, i) => (
           <div 
             key={i}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div 
-              className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
+              className={`max-w-[90%] sm:max-w-[80%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
                 msg.role === 'user' 
                   ? 'bg-amber-400 text-gray-900 rounded-br-md' 
                   : 'bg-white shadow-sm text-gray-800 rounded-bl-md'
               }`}
             >
               {msg.role === 'assistant' && (
-                <div className="text-xs text-amber-600 mb-1 font-medium">Paco</div>
+                <div className="text-xs text-amber-600 mb-0.5 sm:mb-1 font-medium">Paco</div>
               )}
               <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
             </div>
@@ -129,22 +129,22 @@ export default function ChatPage() {
       </div>
 
       {/* Input - fijo abajo */}
-      <div className="bg-white border-t p-4 flex-shrink-0">
-        <div className="flex gap-3 max-w-4xl mx-auto">
+      <div className="bg-white border-t px-3 sm:px-4 py-3 flex-shrink-0">
+        <div className="flex gap-2 sm:gap-3">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             placeholder="Pregunta a Paco..."
-            className="flex-1 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-amber-400 text-sm"
+            className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 rounded-full border border-gray-200 focus:outline-none focus:border-amber-400 text-sm"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="px-6 py-3 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-full font-medium text-white text-sm flex-shrink-0"
+            className="px-4 sm:px-5 py-2.5 sm:py-3 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-full font-medium text-white text-sm flex-shrink-0"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
