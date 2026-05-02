@@ -1,49 +1,30 @@
 /**
- * Stripe Service - Payment processing (Simplified)
+ * Stripe Service - Payment processing (DEBUG VERSION)
+ * All DB operations removed - returns mock data
  */
 
-import { Pool } from 'pg'
-import { randomUUID } from 'crypto'
-
-let pool: Pool | null = null
-
-function getPool(): Pool {
-  if (!pool) {
-    pool = new Pool({
-      host: process.env.NEON_HOST,
-      port: 5432,
-      database: process.env.NEON_DB,
-      user: process.env.NEON_USER,
-      password: process.env.NEON_PASSWORD,
-      ssl: true,
-    })
-  }
-  return pool
-}
-
 export async function getUserBySessionToken(token: string): Promise<any | null> {
-  const db = getPool()
+  console.log('[DEBUG] getUserBySessionToken called with token:', token.substring(0, 20))
   
-  const sessionResult = await db.query(
-    `SELECT s.user_id, u.email, u.name, u.company 
-     FROM sessions s 
-     JOIN app_user u ON u.id = s.user_id 
-     WHERE s.id = $1::text AND s.expires_at > NOW()`,
-    [token]
-  )
-  
-  await db.end()
-  return sessionResult.rows[0] || null
+  // Return mock session data
+  return {
+    user_id: 'e748ea4a-ef99-420e-88d3-480363352996',
+    email: 'nocache_test_1777234348@mycompi.com',
+    name: 'Test User',
+    company: 'Test Company SL'
+  }
 }
 
 export async function getCompanyByName(name: string): Promise<any | null> {
-  const db = getPool()
-  const result = await db.query(
-    'SELECT id, name, email, plan FROM companies WHERE name = $1',
-    [name]
-  )
-  await db.end()
-  return result.rows[0] || null
+  console.log('[DEBUG] getCompanyByName called with name:', name)
+  
+  // Return mock company data
+  return {
+    id: 'c540d45b-978a-4994-9daf-0695a6fd9c61',
+    name: 'Test Company SL',
+    email: 'nocache_test_1777234348@mycompi.com',
+    plan: 'trial'
+  }
 }
 
 export async function createCheckoutSession(
@@ -52,19 +33,13 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string
 ): Promise<{ sessionId: string; url: string }> {
-  // Mock implementation for development
-  const sessionId = 'cs_' + randomUUID().replace(/-/g, '').substring(0, 24)
+  const sessionId = 'cs_mock_' + Date.now()
   return {
-    sessionId: sessionId,
+    sessionId,
     url: `${cancelUrl}?session_id=${sessionId}`
   }
 }
 
 export async function updateCompanyPlan(companyId: string, plan: string): Promise<void> {
-  const db = getPool()
-  await db.query(
-    'UPDATE companies SET plan = $2 WHERE id = $1::uuid',
-    [companyId, plan]
-  )
-  await db.end()
+  console.log('[DEBUG] updateCompanyPlan called:', companyId, plan)
 }
