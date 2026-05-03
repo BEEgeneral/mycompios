@@ -1,0 +1,34 @@
+name: Deploy to InsForge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - '!.github/workflows/deploy-insforge.yml'
+
+jobs:
+  deploy-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install InsForge CLI
+        run: npm install -g insforge
+
+      - name: Deploy auth-register
+        run: insforge functions deploy auth-register --file functions/auth-register-proper.js
+        env:
+          INSFORGE_API_KEY: ${{ secrets.INSFORGE_API_KEY }}
+
+      - name: Deploy other functions
+        run: |
+          for f in functions/*.js; do
+            name=$(basename "$f" .js)
+            if [[ "$name" != "auth-register" ]]; then
+              echo "Deploying $name..."
+              insforge functions deploy "$name" --file "$f" || echo "Failed: $name"
+            fi
+          done
+        env:
+          INSFORGE_API_KEY: ${{ secrets.INSFORGE_API_KEY }}
