@@ -1,4 +1,5 @@
 // MyCompi Authentication - Register
+// Uses db-proxy for database (avoids ctx issues)
 
 export default async function handler(req, ctx) {
   const headers = {
@@ -29,32 +30,19 @@ export default async function handler(req, ctx) {
     return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers });
   }
 
+  if (password.length < 6) {
+    return new Response(JSON.stringify({ error: 'Password too short' }), { status: 400, headers });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return new Response(JSON.stringify({ error: 'Email inválido' }), { status: 400, headers });
+  }
+
   try {
-    const db = ctx.supabase || await ctx.database();
     const emailLower = email.toLowerCase();
-
-    // Check if email exists
-    const { data: existing } = await db
-      .from('app_user')
-      .select('id')
-      .eq('email', emailLower)
-      .single();
-
-    if (existing) {
-      return new Response(JSON.stringify({ error: 'Email exists' }), { status: 409, headers });
-    }
-
-    // Create company
     const companyId = globalThis.crypto.randomUUID();
-    await db
-      .from('companies')
-      .insert({
-        id: companyId,
-        name: company,
-        email: emailLower,
-        plan: 'trial',
-        trial_expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-      });
+    const userId = globalThis.crypto.randomUUID();
 
     // Hash password
     const encoder = new TextEncoder();
@@ -63,29 +51,53 @@ export default async function handler(req, ctx) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Create user
-    const userId = globalThis.crypto.randomUUID();
-    await db
-      .from('app_user')
-      .insert({
-        id: userId,
-        name,
-        email: emailLower,
-        company_id: companyId,
-        password_hash: passwordHash
-      });
-
-    // Create session
+    // Create session token
     const tokenBuffer = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const token = Array.from(tokenBuffer).map(b => b.toString(16).padStart(2, '0')).join('') + '_' + userId;
 
-    await db
-      .from('sessions')
-      .insert({
-        id: token,
-        user_id: userId,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      });
+    // Step 1: Check if email exists
+    const checkRes = await fetch('https://guuimyx3.functions.insforge.app/db-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql: "SELECT id FROM app_user WHERE email = $1",
+        params: [emailLower]
+      })
+    });
+    const checkData = await checkRes.json();
+    if (checkData.rows && checkData.rows.length > 0) {
+      return new Response(JSON.stringify({ error: 'Email exists' }), { status: 409, headers });
+    }
+
+    // Step 2: Create company
+    await fetch('https://guuimyx3.functions.insforge.app/db-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql: "INSERT INTO companies (id, name, email, plan, trial_expires_at) VALUES ($1, $2, $3, $4, $5)",
+        params: [companyId, company, emailLower, 'trial', new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()]
+      })
+    });
+
+    // Step 3: Create user
+    await fetch('https://guuimyx3.functions.insforge.app/db-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql: "INSERT INTO app_user (id, name, email, company_id, password_hash) VALUES ($1, $2, $3, $4, $5)",
+        params: [userId, name, emailLower, companyId, passwordHash]
+      })
+    });
+
+    // Step 4: Create session
+    await fetch('https://guuimyx3.functions.insforge.app/db-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql: "INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)",
+        params: [token, userId, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()]
+      })
+    });
 
     return new Response(
       JSON.stringify({ success: true, userId, companyId, token }),
