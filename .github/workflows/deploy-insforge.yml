@@ -14,21 +14,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install InsForge CLI
-        run: npm install -g insforge
+        run: npm install -g @insforge/cli
 
-      - name: Deploy auth-register
-        run: insforge functions deploy auth-register --file functions/auth-register-proper.js
-        env:
-          INSFORGE_API_KEY: ${{ secrets.INSFORGE_API_KEY }}
+      - name: Link project
+        run: npx @insforge/cli link --project-id dd279199-b379-4c33-ac81-d030cb775585 --api-key ${{ secrets.INSFORGE }} --api-base-url https://guuimyx3.eu-central.insforge.app
 
-      - name: Deploy other functions
+      - name: Deploy functions
         run: |
           for f in functions/*.js; do
             name=$(basename "$f" .js)
-            if [[ "$name" != "auth-register" ]]; then
-              echo "Deploying $name..."
-              insforge functions deploy "$name" --file "$f" || echo "Failed: $name"
-            fi
+            echo "Deploying $name..."
+            npx @insforge/cli functions deploy "$name" --file "$f" || echo "Failed: $name"
           done
         env:
-          INSFORGE_API_KEY: ${{ secrets.INSFORGE_API_KEY }}
+          INSFORGE_API_KEY: ${{ secrets.INSFORGE }}
