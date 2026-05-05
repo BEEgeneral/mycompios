@@ -257,6 +257,21 @@ export default async function handler(req, ctx) {
       return new Response(JSON.stringify({ error: 'company_id required' }), { status: 400, headers })
     }
 
+    // Check if already sent today via InsForge REST
+    const today = new Date().toISOString().split('T')[0]
+    const checkRes = await fetch(`${API_BASE}/rest/daily_briefs?company_id=eq.${companyId}&sent_at=gte.${today}T00:00:00Z`, {
+      headers: { apikey: ANON_KEY }
+    })
+    const existingBriefs = await checkRes.json()
+    if (Array.isArray(existingBriefs) && existingBriefs.length > 0) {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        skipped: true, 
+        reason: 'Already sent today',
+        company_id: companyId 
+      }), { headers })
+    }
+
     // Get company data
     const company = await getCompany(companyId)
     if (!company) {
@@ -281,12 +296,18 @@ export default async function handler(req, ctx) {
     if (recipientEmail) {
       const sent = await sendEmail(recipientEmail, `🤖 Tu Daily Brief de MyCompi — ${new Date().toLocaleDateString('es-ES')}`, emailHtml)
 
-      // Store in daily_briefs
-      await insertDailyBrief(companyId, {
-        reports_count: reports.length,
-        pending_tasks: pendingTasks.length,
-        email_body: emailHtml
-      }, recipientEmail)
+      // Store in daily_briefs via InsForge REST
+      await fetch(`${API_BASE}/rest/daily_briefs`, {
+        method: 'POST',
+        headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_id: companyId,
+          content: { reports_count: reports.length, pending_tasks: pendingTasks.length },
+          recipient_email: recipientEmail,
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        })
+      })
 
       return new Response(JSON.stringify({
         success: sent,
