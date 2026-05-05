@@ -1,6 +1,11 @@
 // PACO DAILY BRIEF - Consolidates agent reports and sends daily email to client
 // Runs at 8:00 UTC via cron
 
+// Emails to skip (temporary blocklist)
+const SKIP_EMAILS = [
+  'albertogala@beenocode.com',  // TEMPORARY - pending email fix
+]
+
 const LLM_CONFIG = {
   minimax: { url: 'https://api.minimax.io/v1/text/chatcompletion_v2', model: 'MiniMax-M2.7' },
 }
@@ -257,6 +262,15 @@ export default async function handler(req, ctx) {
       return new Response(JSON.stringify({ error: 'company_id required' }), { status: 400, headers })
     }
 
+    // Skip blocklisted emails
+    if (recipientEmail && SKIP_EMAILS.includes(recipientEmail.toLowerCase())) {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        skipped: true, 
+        reason: 'Email blocklisted',
+        company_id: companyId 
+      }), { headers })
+    }
     // Check if already sent today via db-proxy (bypasses InsForge REST)
     const today = new Date().toISOString().split('T')[0]
     const checkRes = await fetch('https://guuimyx3.functions.insforge.app/db-proxy', {
