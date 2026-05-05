@@ -1,7 +1,7 @@
 // TOOL REGISTRY v4 - Inline scrape_web, avoid InsForge loop detection
 const API_BASE = 'https://guuimyx3.eu-central.insforge.app'
 const ANON_KEY = 'ik_448e7387f3c4b7f16764bb092b4a84b2'
-const RESEND_API_KEY = 're_TRtcXVky_54TGjwu7juDeY9cbQFCW2Ahj'
+const RESEND_API_KEY = '${process.env.RESEND_API_KEY}'
 
 function safeJsonStringify(obj) {
   try {

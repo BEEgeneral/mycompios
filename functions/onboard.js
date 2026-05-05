@@ -4,7 +4,7 @@
  * Supports both new user registration and existing user onboarding
  */
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_TRtcXVky_54TGjwu7juDeY9cbQFCW2Ahj';
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 // Simple in-memory rate limiting
 const rateLimit = new Map();

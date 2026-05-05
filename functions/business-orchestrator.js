@@ -5,7 +5,7 @@
 const CONFIG = {
   API_BASE: 'https://guuimyx3.eu-central.insforge.app',
   ANON_KEY: 'ik_448e7387f3c4b7f16764bb092b4a84b2',
-  RESEND_API_KEY: 're_TRtcXVky_54TGjwu7juDeY9cbQFCW2Ahj',
+  RESEND_API_KEY: '${process.env.RESEND_API_KEY}',
   FRONTEND_URL: 'https://guuimyx3.insforge.site',
 }
 
