@@ -257,13 +257,18 @@ export default async function handler(req, ctx) {
       return new Response(JSON.stringify({ error: 'company_id required' }), { status: 400, headers })
     }
 
-    // Check if already sent today via InsForge REST
+    // Check if already sent today via db-proxy (bypasses InsForge REST)
     const today = new Date().toISOString().split('T')[0]
-    const checkRes = await fetch(`${API_BASE}/rest/daily_briefs?company_id=eq.${companyId}&sent_at=gte.${today}T00:00:00Z`, {
-      headers: { apikey: ANON_KEY }
+    const checkRes = await fetch('https://guuimyx3.functions.insforge.app/db-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql: "SELECT id FROM daily_briefs WHERE company_id = $1 AND sent_at >= $2 LIMIT 1",
+        params: [companyId, today + 'T00:00:00Z']
+      })
     })
-    const existingBriefs = await checkRes.json()
-    if (Array.isArray(existingBriefs) && existingBriefs.length > 0) {
+    const checkData = await checkRes.json()
+    if (checkData.rows && checkData.rows.length > 0) {
       return new Response(JSON.stringify({ 
         success: true, 
         skipped: true, 
@@ -296,16 +301,13 @@ export default async function handler(req, ctx) {
     if (recipientEmail) {
       const sent = await sendEmail(recipientEmail, `🤖 Tu Daily Brief de MyCompi — ${new Date().toLocaleDateString('es-ES')}`, emailHtml)
 
-      // Store in daily_briefs via InsForge REST
-      await fetch(`${API_BASE}/rest/daily_briefs`, {
+      // Store in daily_briefs via db-proxy
+      await fetch('https://guuimyx3.functions.insforge.app/db-proxy', {
         method: 'POST',
-        headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          company_id: companyId,
-          content: { reports_count: reports.length, pending_tasks: pendingTasks.length },
-          recipient_email: recipientEmail,
-          status: 'sent',
-          sent_at: new Date().toISOString()
+          sql: "INSERT INTO daily_briefs (id, company_id, content, recipient_email, status, sent_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+          params: [globalThis.crypto.randomUUID(), companyId, JSON.stringify({ reports_count: reports.length, pending_tasks: pendingTasks.length }), recipientEmail, 'sent']
         })
       })
 
