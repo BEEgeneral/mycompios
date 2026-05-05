@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 
-const sql = neon(process.env.DATABASE_URL!)
-
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-// GET /api/auth/me - Validate session token
+// Lazy init
+let _sql: ReturnType<typeof neon> | null = null
+function getSql() {
+  if (!_sql) {
+    _sql = neon(process.env.DATABASE_URL!)
+  }
+  return _sql
+}
+
+// GET /api/auth/me
 export async function GET(req: NextRequest) {
+  const sql = getSql()
   const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
 
   if (req.method === 'OPTIONS') {
@@ -25,11 +33,9 @@ export async function GET(req: NextRequest) {
   const token = authHeader.slice(7)
 
   try {
-    // Join sessions with users and companies
     const result = await sql`
       SELECT u.id, u.name, u.email, u.company_id,
-             c.name as company_name, c.plan, c.trial_expires_at,
-             s.expires_at
+             c.name as company_name, c.plan, c.trial_expires_at
       FROM sessions s
       JOIN app_user u ON s.user_id = u.id
       JOIN companies c ON u.company_id = c.id
@@ -51,8 +57,7 @@ export async function GET(req: NextRequest) {
         companyId: user.company_id,
         companyName: user.company_name,
         plan: user.plan,
-        trialExpiresAt: user.trial_expires_at,
-        sessionExpiresAt: user.expires_at
+        trialExpiresAt: user.trial_expires_at
       }
     }, { status: 200, headers })
 

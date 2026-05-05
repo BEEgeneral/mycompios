@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 
-// Connection: uses DATABASE_URL from environment
-const sql = neon(process.env.DATABASE_URL!)
-
 // Password salt - must match login
 const SALT = 'MYCOMPI_SALT_2026'
 
@@ -14,8 +11,18 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+// Lazy initialization - only when handler runs, not at build time
+let _sql: ReturnType<typeof neon> | null = null
+function getSql() {
+  if (!_sql) {
+    _sql = neon(process.env.DATABASE_URL!)
+  }
+  return _sql
+}
+
 // POST /api/auth/register
 export async function POST(req: NextRequest) {
+  const sql = getSql()
   const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
 
   if (req.method === 'OPTIONS') {
@@ -35,17 +42,14 @@ export async function POST(req: NextRequest) {
 
   const { email, password, name, company } = body
 
-  // Validate required fields
   if (!email || !password || !name || !company) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400, headers })
   }
 
-  // Validate password length
   if (password.length < 6) {
     return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400, headers })
   }
 
-  // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email)) {
     return NextResponse.json({ error: 'Invalid email format' }, { status: 400, headers })
@@ -54,7 +58,6 @@ export async function POST(req: NextRequest) {
   try {
     const emailLower = email.toLowerCase()
 
-    // Check if email already exists
     const existing = await sql`
       SELECT id FROM app_user WHERE email = ${emailLower}
     `
@@ -62,7 +65,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409, headers })
     }
 
-    // Create company (generate UUID for id)
+    // Create company
     const companyId = crypto.randomUUID()
     await sql`
       INSERT INTO companies (id, name, email, plan, trial_expires_at)
@@ -89,11 +92,11 @@ export async function POST(req: NextRequest) {
       VALUES (${userId}, ${name}, ${emailLower}, ${companyId}, ${passwordHash})
     `
 
-    // Create session token: random hex + userId
+    // Create session token
     const tokenBuffer = crypto.getRandomValues(new Uint8Array(32))
     const token = Array.from(tokenBuffer).map(b => b.toString(16).padStart(2, '0')).join('') + '_' + userId
 
-    // Store session (30 day expiry)
+    // Store session
     await sql`
       INSERT INTO sessions (id, user_id, expires_at)
       VALUES (${token}, ${userId}, NOW() + INTERVAL '30 days')

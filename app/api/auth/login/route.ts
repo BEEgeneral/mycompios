@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 
-// Connection: uses DATABASE_URL from environment
-const sql = neon(process.env.DATABASE_URL!)
-
 // Password salt - must match register
 const SALT = 'MYCOMPI_SALT_2026'
 
@@ -14,8 +11,18 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+// Lazy initialization - only when handler runs, not at build time
+let _sql: ReturnType<typeof neon> | null = null
+function getSql() {
+  if (!_sql) {
+    _sql = neon(process.env.DATABASE_URL!)
+  }
+  return _sql
+}
+
 // POST /api/auth/login
 export async function POST(req: NextRequest) {
+  const sql = getSql()
   const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
 
   if (req.method === 'OPTIONS') {
@@ -35,7 +42,6 @@ export async function POST(req: NextRequest) {
 
   const { email, password } = body
 
-  // Validate required fields
   if (!email || !password) {
     return NextResponse.json(
       { error: 'Email and password are required', code: 'MISSING_CREDENTIALS' },
@@ -46,7 +52,6 @@ export async function POST(req: NextRequest) {
   try {
     const emailLower = email.toLowerCase()
 
-    // Find user by email
     const users = await sql`
       SELECT u.id, u.name, u.email, u.password_hash, u.company_id,
              c.name as company_name, c.plan, c.trial_expires_at
@@ -82,13 +87,12 @@ export async function POST(req: NextRequest) {
     const tokenBuffer = crypto.getRandomValues(new Uint8Array(32))
     const token = Array.from(tokenBuffer).map(b => b.toString(16).padStart(2, '0')).join('') + '_' + user.id
 
-    // Store session (30 day expiry)
+    // Store session
     await sql`
       INSERT INTO sessions (id, user_id, expires_at)
       VALUES (${token}, ${user.id}, NOW() + INTERVAL '30 days')
     `
 
-    // Return user data (without password)
     return NextResponse.json({
       success: true,
       user: {

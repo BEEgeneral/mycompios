@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 
-const sql = neon(process.env.DATABASE_URL!)
-
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-// POST /api/auth/logout - Delete session
+// Lazy init
+let _sql: ReturnType<typeof neon> | null = null
+function getSql() {
+  if (!_sql) {
+    _sql = neon(process.env.DATABASE_URL!)
+  }
+  return _sql
+}
+
+// POST /api/auth/logout
 export async function POST(req: NextRequest) {
+  const sql = getSql()
   const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
 
   if (req.method === 'OPTIONS') {
@@ -25,11 +33,8 @@ export async function POST(req: NextRequest) {
   const token = authHeader.slice(7)
 
   try {
-    // Delete session
     await sql`DELETE FROM sessions WHERE id = ${token}`
-
     return NextResponse.json({ success: true }, { status: 200, headers })
-
   } catch (err: any) {
     console.error('Logout error:', err)
     return NextResponse.json({ error: 'Logout failed' }, { status: 500, headers })
