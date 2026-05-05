@@ -9,7 +9,7 @@ const SKIP_EMAILS = [
 const LLM_CONFIG = {
   minimax: { url: 'https://api.minimax.io/v1/text/chatcompletion_v2', model: 'MiniMax-M2.7' },
 }
-const LLM_KEY = 'sk-cp-kewjUeaiHUlb-tvKgHb4JIOJt2-GrY6Uj9Y-hPFvOq3QyBsGAlbSQIw-eT7XERlLNrQ2l1-sy42pHSfGloIP46fp52OaX76Z8s6T5MkXMi0CObEeaa5JxFI'
+const LLM_KEY = process.env.MINIMAX_API_KEY || 'FALLBACK_KEY'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 
