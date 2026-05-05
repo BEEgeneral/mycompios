@@ -104,8 +104,9 @@ export async function POST(req) {
     const pool = getDbPool()
 
     // Get user + company
+    // Note: sessions.id IS the token - no token column exists
     const sessionResult = await pool.query(
-      'SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()',
+      'SELECT user_id FROM sessions WHERE id = $1 AND expires_at > NOW()',
       [token]
     )
 
@@ -164,17 +165,37 @@ export async function POST(req) {
       )
     }
 
-    // Save to memory instead of learning_interactions
+    // Save to memory
+    const chatEntryId = require('crypto').randomUUID()
     await pool.query(
       `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [
-        require('crypto').randomUUID(),
+        chatEntryId,
         companyId,
         'chat',
         `Chat con ${AGENTS[selectedAgent]?.name || 'Paco'}: ${message.substring(0, 100)}`,
         ['chat', selectedAgent],
         'chat'
+      ]
+    )
+
+    // Also save/update chat session metadata
+    const sessionId = require('crypto').randomUUID()
+    const sessionTitle = message.substring(0, 40) + (message.length > 40 ? '...' : '')
+    await pool.query(
+      `INSERT INTO memory_entries (id, company_id, entry_type, content, tags, source)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (id) DO UPDATE SET
+         content = EXCLUDED.content,
+         updated_at = NOW()`,
+      [
+        sessionId,
+        companyId,
+        'chat_session',
+        JSON.stringify({ sessionId, title: sessionTitle, agentId: selectedAgent }),
+        ['chat_session', selectedAgent],
+        'chat_session'
       ]
     )
 
