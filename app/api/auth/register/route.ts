@@ -3,17 +3,13 @@ export const runtime = 'nodejs'
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 
-// Password salt - must match login
 const SALT = 'MYCOMPI_SALT_2026'
-
-// CORS headers for frontend
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-// Lazy initialization - only when handler runs, not at build time
 let _sql: ReturnType<typeof neon> | null = null
 function getSql() {
   if (!_sql) {
@@ -22,7 +18,6 @@ function getSql() {
   return _sql
 }
 
-// POST /api/auth/register
 export async function POST(req: NextRequest) {
   const sql = getSql()
   const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
@@ -60,14 +55,13 @@ export async function POST(req: NextRequest) {
   try {
     const emailLower = email.toLowerCase()
 
-    const existing = await sql`
-      SELECT id FROM app_user WHERE email = ${emailLower}
-    `
+    const existingRaw = await sql`SELECT id FROM app_user WHERE email = ${emailLower}`
+    const existing: any[] = Array.isArray(existingRaw) ? existingRaw : [existingRaw]
+
     if (existing.length > 0) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409, headers })
     }
 
-    // Create company
     const companyId = crypto.randomUUID()
     await sql`
       INSERT INTO companies (id, name, email, plan, trial_expires_at)
@@ -80,25 +74,21 @@ export async function POST(req: NextRequest) {
       )
     `
 
-    // Hash password with salt
     const encoder = new TextEncoder()
     const dataBuffer = encoder.encode(password + SALT)
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
-    // Create user
     const userId = crypto.randomUUID()
     await sql`
       INSERT INTO app_user (id, name, email, company_id, password_hash)
       VALUES (${userId}, ${name}, ${emailLower}, ${companyId}, ${passwordHash})
     `
 
-    // Create session token
     const tokenBuffer = crypto.getRandomValues(new Uint8Array(32))
     const token = Array.from(tokenBuffer).map(b => b.toString(16).padStart(2, '0')).join('') + '_' + userId
 
-    // Store session
     await sql`
       INSERT INTO sessions (id, user_id, expires_at)
       VALUES (${token}, ${userId}, NOW() + INTERVAL '30 days')

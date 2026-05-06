@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   const token = authHeader.slice(7)
 
   try {
-    const result = await sql`
+    const resultRaw = await sql`
       SELECT u.id, u.name, u.email, u.company_id,
              c.name as company_name, c.plan, c.trial_expires_at
       FROM sessions s
@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       WHERE s.id = ${token}
         AND s.expires_at > NOW()
     `
+    const result: any[] = Array.isArray(resultRaw) ? resultRaw : [resultRaw]
 
     if (!result.length) {
       return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401, headers })

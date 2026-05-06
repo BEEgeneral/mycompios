@@ -30,12 +30,7 @@ export async function POST(req: Request) {
       [mission || '', company_id]
     )
 
-    // Import and call createDefaultMissions
-    const { createDefaultMissions } = require('../../lib/pipeline')
-
-    // Create default missions for this company (like Polsia)
-    await createDefaultMissions(company_id)
-    console.log('[Onboarding] Created default missions for company:', company_id)
+    console.log('[Onboarding] Updated company:', company_id)
 
     // Create initial tasks as proposals
     if (tasks && Array.isArray(tasks)) {

@@ -54,13 +54,14 @@ export async function POST(req: NextRequest) {
   try {
     const emailLower = email.toLowerCase()
 
-    const users = await sql`
+    const usersRaw = await sql`
       SELECT u.id, u.name, u.email, u.password_hash, u.company_id,
              c.name as company_name, c.plan, c.trial_expires_at
       FROM app_user u
       JOIN companies c ON u.company_id = c.id
       WHERE u.email = ${emailLower}
     `
+    const users: any[] = Array.isArray(usersRaw) ? usersRaw : [usersRaw]
 
     if (!users.length) {
       return NextResponse.json(
