@@ -1,38 +1,36 @@
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { neon } from '@neondatabase/serverless'
+import { Pool } from 'pg'
 
-// Password salt - must match register
 const SALT = 'MYCOMPI_SALT_2026'
-
-// CORS headers for frontend
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-// Lazy initialization - only when handler runs, not at build time
-let _sql: ReturnType<typeof neon> | null = null
-function getSql() {
-  if (!_sql) {
-    _sql = neon(process.env.DATABASE_URL!)
+let _pool: Pool | null = null
+function getPool() {
+  if (!_pool) {
+    _pool = new Pool({
+      host: process.env.NEON_HOST,
+      database: process.env.NEON_DB,
+      user: process.env.NEON_USER,
+      password: process.env.NEON_PASSWORD,
+      ssl: true,
+      max: 2,
+    })
   }
-  return _sql
+  return _pool
 }
 
-// POST /api/auth/login
 export async function POST(req: NextRequest) {
-  const sql = getSql()
+  const pool = getPool()
   const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
 
   if (req.method === 'OPTIONS') {
     return new Response('', { status: 200, headers })
-  }
-
-  if (req.method !== 'POST') {
-    return NextResponse.json({ error: 'Method not allowed' }, { status: 405, headers })
   }
 
   let body
@@ -54,15 +52,16 @@ export async function POST(req: NextRequest) {
   try {
     const emailLower = email.toLowerCase()
 
-    const usersRaw = await sql`
-      SELECT u.id, u.name, u.email, u.password_hash, u.company_id,
-             c.name as company_name, c.plan, c.trial_expires_at
-      FROM app_user u
-      JOIN companies c ON u.company_id = c.id
-      WHERE u.email = ${emailLower}
-    `
-    const users: any[] = Array.isArray(usersRaw) ? usersRaw : [usersRaw]
+    const result = await pool.query(
+      `SELECT u.id, u.name, u.email, u.password_hash, u.company_id,
+              c.name as company_name, c.plan, c.trial_expires_at
+       FROM app_user u
+       JOIN companies c ON u.company_id = c.id
+       WHERE u.email = $1`,
+      [emailLower]
+    )
 
+    const users: any[] = result.rows
     if (!users.length) {
       return NextResponse.json(
         { error: 'Credenciales inválidas', code: 'INVALID_CREDENTIALS' },
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
 
     const user = users[0]
 
-    // Verify password
     const encoder = new TextEncoder()
     const dataBuffer = encoder.encode(password + SALT)
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer)
@@ -86,15 +84,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Create new session token
     const tokenBuffer = crypto.getRandomValues(new Uint8Array(32))
     const token = Array.from(tokenBuffer).map(b => b.toString(16).padStart(2, '0')).join('') + '_' + user.id
 
-    // Store session
-    await sql`
-      INSERT INTO sessions (id, user_id, expires_at)
-      VALUES (${token}, ${user.id}, NOW() + INTERVAL '30 days')
-    `
+    await pool.query(
+      `INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, NOW() + INTERVAL '30 days')`,
+      [token, user.id]
+    )
 
     return NextResponse.json({
       success: true,
