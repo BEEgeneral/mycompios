@@ -10,10 +10,26 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-let _pool: Pool | null = null
-function getPool() {
-  if (!_pool) {
-    _pool = new Pool({
+export async function POST(req: NextRequest) {
+  const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+
+  if (req.method === 'OPTIONS') {
+    return new Response('', { status: 200, headers })
+  }
+
+  try {
+    const body = await req.json()
+    const { email, password } = body
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required', code: 'MISSING_CREDENTIALS' },
+        { status: 400, headers }
+      )
+    }
+
+    // Create pool inline (like test-db)
+    const pool = new Pool({
       host: process.env.NEON_HOST,
       database: process.env.NEON_DB,
       user: process.env.NEON_USER,
@@ -21,35 +37,7 @@ function getPool() {
       ssl: true,
       max: 2,
     })
-  }
-  return _pool
-}
 
-export async function POST(req: NextRequest) {
-  const pool = getPool()
-  const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-
-  if (req.method === 'OPTIONS') {
-    return new Response('', { status: 200, headers })
-  }
-
-  let body
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400, headers })
-  }
-
-  const { email, password } = body
-
-  if (!email || !password) {
-    return NextResponse.json(
-      { error: 'Email and password are required', code: 'MISSING_CREDENTIALS' },
-      { status: 400, headers }
-    )
-  }
-
-  try {
     const emailLower = email.toLowerCase()
 
     const result = await pool.query(
@@ -61,6 +49,8 @@ export async function POST(req: NextRequest) {
       [emailLower]
     )
 
+    await pool.end()
+
     const users: any[] = result.rows
     if (!users.length) {
       return NextResponse.json(
@@ -71,6 +61,7 @@ export async function POST(req: NextRequest) {
 
     const user = users[0]
 
+    // Hash password
     const encoder = new TextEncoder()
     const dataBuffer = encoder.encode(password + SALT)
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer)
@@ -84,13 +75,25 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Create new pool for session insert
+    const pool2 = new Pool({
+      host: process.env.NEON_HOST,
+      database: process.env.NEON_DB,
+      user: process.env.NEON_USER,
+      password: process.env.NEON_PASSWORD,
+      ssl: true,
+      max: 1,
+    })
+
     const tokenBuffer = crypto.getRandomValues(new Uint8Array(32))
     const token = Array.from(tokenBuffer).map(b => b.toString(16).padStart(2, '0')).join('') + '_' + user.id
 
-    await pool.query(
+    await pool2.query(
       `INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, NOW() + INTERVAL '30 days')`,
       [token, user.id]
     )
+
+    await pool2.end()
 
     return NextResponse.json({
       success: true,
@@ -107,7 +110,7 @@ export async function POST(req: NextRequest) {
     }, { status: 200, headers })
 
   } catch (err: any) {
-    console.error('Login error:', err)
+    console.error('Login error:', err.message)
     return NextResponse.json(
       { error: 'Login failed', detail: err.message },
       { status: 500, headers }
