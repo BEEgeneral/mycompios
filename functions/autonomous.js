@@ -21,11 +21,29 @@ const LLM_KEYS = {
   openai: 'sk-proj-REDACTED'
 }
 
+// Agent tool specialization map
+const AGENT_TOOLS: Record<string, string[]> = {
+  pelayo:  ['email', 'calendar', 'tasks'],
+  paco:    ['integrations', 'execution'],
+  brain:   ['research', 'analysis']
+}
+
+// Default tool assignments per agent
+const TOOL_AGENT_MAP: Record<string, string> = {
+  send_email: 'pelayo',
+  send_calendar: 'pelayo',
+  create_task: 'pelayo',
+  execute_integration: 'paco',
+  run_workflow: 'paco',
+  research_web: 'brain',
+  analyze_data: 'brain'
+}
+
 interface L6State {
   companyId: string
   initialized: boolean
   timestamp: string
-  agents: Array<{ id: string; name: string; role: string; status: string; spawned: number; confidence: number; scope: string[] }>
+  agents: Array<{ id: string; name: string; role: string; status: string; spawned: number; confidence: number; scope: string[]; tools: string[] }>
   memory: Array<{ type: string; content: string; timestamp: string; validated: boolean; score?: number }>
   tasks: Array<{ id: string; agentId: string; status: string; created: string }>
   learning: { iteration: number; lastValidation: string | null; rollbackCount: number; avgConfidence: number }
@@ -35,9 +53,9 @@ function initState(companyId: string): L6State {
   globalThis.l6State = {
     companyId, initialized: true, timestamp: new Date().toISOString(),
     agents: [
-      { id: 'pelayo-001', name: 'Pelayo', role: 'executive', status: 'idle', spawned: 0, confidence: 0.85, scope: ['chat', 'tasks', 'communication'] },
-      { id: 'paco-001', name: 'Paco', role: 'operations', status: 'idle', spawned: 0, confidence: 0.80, scope: ['automation', 'reports', 'scheduling'] },
-      { id: 'brain-001', name: 'BRAIN', role: 'knowledge', status: 'idle', spawned: 0, confidence: 0.90, scope: ['learning', 'knowledge_graph', 'extraction'] }
+      { id: 'pelayo-001', name: 'Pelayo', role: 'executive', status: 'idle', spawned: 0, confidence: 0.85, scope: ['chat', 'tasks', 'communication'], tools: ['email', 'calendar', 'tasks'] },
+      { id: 'paco-001', name: 'Paco', role: 'operations', status: 'idle', spawned: 0, confidence: 0.80, scope: ['automation', 'reports', 'scheduling'], tools: ['integrations', 'execution'] },
+      { id: 'brain-001', name: 'BRAIN', role: 'knowledge', status: 'idle', spawned: 0, confidence: 0.90, scope: ['learning', 'knowledge_graph', 'extraction'], tools: ['research', 'analysis'] }
     ],
     memory: [], tasks: [],
     learning: { iteration: 0, lastValidation: null, rollbackCount: 0, avgConfidence: 0.85 }
@@ -93,6 +111,33 @@ async function multiLLMStructured(messages: any[], systemPrompt: string, maxToke
     } catch (e) { console.log(`${p} failed:`, e.message) }
   }
   return null
+}
+
+// Route a tool request to the appropriate specialized agent
+function routeToAgent(toolName: string): { agentId: string; agentName: string } | null {
+  const mappedAgent = TOOL_AGENT_MAP[toolName]
+  if (mappedAgent) return { agentId: `${mappedAgent}-001`, agentName: mappedAgent.charAt(0).toUpperCase() + mappedAgent.slice(1) }
+  // Fall back to role-based routing
+  if (AGENT_TOOLS.pelayo.includes(toolName)) return { agentId: 'pelayo-001', agentName: 'Pelayo' }
+  if (AGENT_TOOLS.paco.includes(toolName)) return { agentId: 'paco-001', agentName: 'Paco' }
+  if (AGENT_TOOLS.brain.includes(toolName)) return { agentId: 'brain-001', agentName: 'BRAIN' }
+  return null
+}
+
+// Check if agent can use a tool (from agent_tools table if available, else from defaults)
+async function canAgentUseTool(agentId: string, toolName: string): Promise<boolean> {
+  // First check DB if available
+  if (process.env.DATABASE_URL || process.env.NEON_DATABASE_URL) {
+    try {
+      const { createClient } = await import('@neondatabase/serverless')
+      const sql = createClient(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || '')
+      const agentName = agentId.split('-')[0]
+      const rows = await sql`SELECT enabled FROM agent_tools WHERE agent_id = ${agentName} AND tool_name = ${toolName}`
+      if (rows.length) return rows[0].enabled
+    } catch { /* fall through to defaults */ }
+  }
+  // Fall back to defaults
+  return AGENT_TOOLS[agentId.split('-')[0]]?.includes(toolName) ?? false
 }
 
 async function vikingSearch(query: string) {
@@ -282,6 +327,20 @@ export default async function(req: Request): Promise<Response> {
         case 'task': {
           const taskResult = await runProactiveTask(state, agentId || 'brain-001', taskType || 'health_check')
           return new Response(JSON.stringify({ success: true, action: 'task', ...taskResult }), { headers })
+        }
+
+        case 'route': {
+          // Route a tool request to the appropriate specialized agent
+          const { tool, params } = body
+          if (!tool) return new Response(JSON.stringify({ error: 'Missing tool name' }), { status: 400, headers })
+          const routed = routeToAgent(tool)
+          if (!routed) return new Response(JSON.stringify({ error: `No agent available for tool: ${tool}` }), { status: 404, headers })
+          const agent = state.agents.find(a => a.id === routed.agentId)
+          if (!agent) return new Response(JSON.stringify({ error: 'Agent not found' }), { status: 404, headers })
+          if (agent.status === 'working') return new Response(JSON.stringify({ error: 'Agent busy' }), { status: 409, headers })
+          const canUse = await canAgentUseTool(routed.agentId, tool)
+          if (!canUse) return new Response(JSON.stringify({ error: `Agent ${agent.name} cannot use tool: ${tool}` }), { status: 403, headers })
+          return new Response(JSON.stringify({ success: true, routedTo: { agentId: routed.agentId, agentName: routed.agentName, tool }, agentStatus: agent.status }), { headers })
         }
 
         default:
