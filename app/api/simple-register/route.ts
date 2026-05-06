@@ -41,18 +41,21 @@ export async function POST(req: NextRequest) {
   const { email, password, name, company } = body || {}
 
   if (!email || !password || !name || !company) {
-    return NextResponse.json({ error: 'Missing fields', received: !!email }, { status: 400, headers })
+    return NextResponse.json({ error: 'Missing fields', received: { hasEmail: !!email, hasPassword: !!password, hasName: !!name, hasCompany: !!company } }, { status: 400, headers })
   }
 
   let pool
+  let step = 'init'
+  
   try {
+    step = 'create-pool'
     pool = getPool()
-    console.log('Pool created, testing connection...')
     
+    step = 'test-connection'
     const test = await pool.query('SELECT 1 as test')
     console.log('DB connection OK:', test.rows[0])
 
-    // Check email
+    step = 'check-email'
     const exists = await pool.query(
       'SELECT id FROM app_user WHERE LOWER(email) = LOWER($1)',
       [email]
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email exists' }, { status: 409, headers })
     }
 
-    // Create company
+    step = 'create-company'
     const companyId = randomUUID()
     const trialExpires = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     const apiKey = 'mc_' + randomUUID().replace(/-/g, '').substring(0, 24)
@@ -76,7 +79,7 @@ export async function POST(req: NextRequest) {
     )
     console.log('Company created:', companyId)
 
-    // Create user
+    step = 'create-user'
     const userId = randomUUID()
     const pwHash = createHash('sha256').update(password + SALT).digest('hex')
     const now = new Date().toISOString()
@@ -89,7 +92,7 @@ export async function POST(req: NextRequest) {
     )
     console.log('User created:', userResult.rows[0].id)
 
-    // Create session
+    step = 'create-session'
     const token = randomUUID() + '_' + userId
     await pool.query(
       `INSERT INTO sessions (id, user_id, created_at, expires_at)
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
     )
     console.log('Session created')
 
-    // Init trial
+    step = 'init-trial'
     await pool.query(
       `INSERT INTO trial_status (company_id, trial_ends_at, has_trial, trial_converted, messages_used_today, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -116,13 +119,17 @@ export async function POST(req: NextRequest) {
       trial_expires_at: trialExpires
     }, { headers })
 
-  } catch ( err: any) {
-    console.error('Register error:', err.message)
+  } catch (err: any) {
+    console.error('Register error at step:', step, err.message)
     console.error('Stack:', err.stack?.slice(0, 500))
     if (pool) await pool.end().catch(() => {})
+    // Return actual error for debugging
     return NextResponse.json({
       error: err.message,
-      stack: err.stack?.slice(0, 500)
+      name: err.name,
+      code: err.code,
+      step: step,
+      detail: err.stack?.slice(0, 500)
     }, { status: 500, headers })
   }
 }
