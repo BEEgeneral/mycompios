@@ -81,7 +81,7 @@ export async function createNewUser(data: {
   name: string
   email: string
   password: string
-  company: string
+  companyId: string
 }): Promise<{ userId: string; name: string; email: string }> {
   const db = getPool()
   
@@ -90,10 +90,10 @@ export async function createNewUser(data: {
   const now = new Date().toISOString()
 
   const result = await db.query(
-    `INSERT INTO app_user (id, name, email, company, password_hash, created_at)
+    `INSERT INTO app_user (id, name, email, company_id, password_hash, created_at)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING id, name, email`,
-    [userId, data.name, data.email.toLowerCase(), data.company, pwHash, now]
+    [userId, data.name, data.email.toLowerCase(), data.companyId, pwHash, now]
   )
 
   return { userId: result.rows[0].id, name: result.rows[0].name, email: result.rows[0].email }

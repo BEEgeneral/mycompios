@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       name,
       email,
       password,
-      company
+      companyId: companyId
     })
 
     // Create session
