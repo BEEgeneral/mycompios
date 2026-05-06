@@ -6,31 +6,62 @@ import { createHash, randomUUID } from 'crypto'
 
 const SALT = 'MYCOMPI_SALT_2026'
 
+function getPool() {
+  return new Pool({
+    host: process.env.NEON_HOST,
+    port: 5432,
+    database: process.env.NEON_DB,
+    user: process.env.NEON_USER,
+    password: process.env.NEON_PASSWORD,
+    ssl: true,
+    max: 1,
+  })
+}
+
 export async function POST(req: NextRequest) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  }
+
+  if (req.method === 'OPTIONS') {
+    return new NextResponse('', { status: 200, headers })
+  }
+
+  let body
   try {
-    const { email, password, name, company } = await req.json()
+    body = await req.json()
+  } catch (e: any) {
+    const text = await req.text().catch(() => 'unknown')
+    console.error('JSON parse error:', e.message, 'body:', text.slice(0, 200))
+    return NextResponse.json({ error: 'Invalid JSON', detail: e.message }, { status: 400, headers })
+  }
 
-    if (!email || !password || !name || !company) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
-    }
+  const { email, password, name, company } = body || {}
 
-    const pool = new Pool({
-      host: process.env.NEON_HOST,
-      port: 5432,
-      database: process.env.NEON_DB,
-      user: process.env.NEON_USER,
-      password: process.env.NEON_PASSWORD,
-      ssl: true,
-    })
+  if (!email || !password || !name || !company) {
+    return NextResponse.json({ error: 'Missing fields', received: !!email }, { status: 400, headers })
+  }
+
+  let pool
+  try {
+    pool = getPool()
+    console.log('Pool created, testing connection...')
+    
+    const test = await pool.query('SELECT 1 as test')
+    console.log('DB connection OK:', test.rows[0])
 
     // Check email
     const exists = await pool.query(
       'SELECT id FROM app_user WHERE LOWER(email) = LOWER($1)',
       [email]
     )
+    console.log('Email exists check done:', exists.rows.length)
+    
     if (exists.rows.length > 0) {
       await pool.end()
-      return NextResponse.json({ error: 'Email exists' }, { status: 409 })
+      return NextResponse.json({ error: 'Email exists' }, { status: 409, headers })
     }
 
     // Create company
@@ -43,6 +74,7 @@ export async function POST(req: NextRequest) {
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)`,
       [companyId, company, email.toLowerCase(), 'trial', trialExpires, apiKey, '{}']
     )
+    console.log('Company created:', companyId)
 
     // Create user
     const userId = randomUUID()
@@ -55,6 +87,7 @@ export async function POST(req: NextRequest) {
        RETURNING id, name, email`,
       [userId, name, email.toLowerCase(), companyId, pwHash, now]
     )
+    console.log('User created:', userResult.rows[0].id)
 
     // Create session
     const token = randomUUID() + '_' + userId
@@ -63,6 +96,7 @@ export async function POST(req: NextRequest) {
        VALUES ($1, $2, $3, $4)`,
       [randomUUID(), userId, now, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()]
     )
+    console.log('Session created')
 
     // Init trial
     await pool.query(
@@ -70,6 +104,7 @@ export async function POST(req: NextRequest) {
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [companyId, trialExpires, true, false, 0, now]
     )
+    console.log('Trial status created')
 
     await pool.end()
 
@@ -79,13 +114,15 @@ export async function POST(req: NextRequest) {
       companyId,
       token,
       trial_expires_at: trialExpires
-    })
+    }, { headers })
 
-  } catch (err: any) {
-    console.error('Register error:', err)
+  } catch ( err: any) {
+    console.error('Register error:', err.message)
+    console.error('Stack:', err.stack?.slice(0, 500))
+    if (pool) await pool.end().catch(() => {})
     return NextResponse.json({
       error: err.message,
       stack: err.stack?.slice(0, 500)
-    }, { status: 500 })
+    }, { status: 500, headers })
   }
 }
