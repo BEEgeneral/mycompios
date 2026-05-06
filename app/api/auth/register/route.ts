@@ -9,29 +9,28 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+function parseBody(req: NextRequest): Promise<{email: string, password: string, name: string, company: string}> {
+  const contentType = req.headers.get('content-type') || ''
+  
+  if (contentType.includes('application/json')) {
+    return req.json()
+  }
+  
+  // URL-encoded or form-data
+  return req.text().then(text => {
+    const params = new URLSearchParams(text)
+    return {
+      email: params.get('email') || '',
+      password: params.get('password') || '',
+      name: params.get('name') || '',
+      company: params.get('company') || ''
+    }
+  })
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const contentType = req.headers.get('content-type') || ''
-    
-    let email = ''
-    let password = ''
-    let name = ''
-    let company = ''
-
-    if (contentType.includes('application/json')) {
-      const body = await req.json()
-      email = body.email || ''
-      password = body.password || ''
-      name = body.name || ''
-      company = body.company || ''
-    } else {
-      const bodyText = await req.text()
-      const params = new URLSearchParams(bodyText)
-      email = params.get('email') || ''
-      password = params.get('password') || ''
-      name = params.get('name') || ''
-      company = params.get('company') || ''
-    }
+    const { email, password, name, company } = await parseBody(req)
 
     if (!email || !password || !name || !company) {
       return NextResponse.json(
@@ -94,7 +93,7 @@ export async function POST(req: NextRequest) {
       userId,
       companyId,
       token
-    })
+    }, { headers: CORS_HEADERS })
 
   } catch (err: any) {
     return NextResponse.json(

@@ -9,13 +9,26 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+function parseBody(req: NextRequest): Promise<{email: string, password: string}> {
+  const contentType = req.headers.get('content-type') || ''
+  
+  if (contentType.includes('application/json')) {
+    return req.json()
+  }
+  
+  // URL-encoded or form-data
+  return req.text().then(text => {
+    const params = new URLSearchParams(text)
+    return {
+      email: params.get('email') || '',
+      password: params.get('password') || ''
+    }
+  })
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // Parse body manually
-    const bodyText = await req.text()
-    const params = new URLSearchParams(bodyText)
-    const email = params.get('email') || ''
-    const password = params.get('password') || ''
+    const { email, password } = await parseBody(req)
 
     if (!email || !password) {
       return NextResponse.json(
@@ -66,7 +79,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       user: { id: user.id, name: user.name, email: user.email }
-    })
+    }, { headers: CORS_HEADERS })
 
   } catch (err: any) {
     return NextResponse.json(
