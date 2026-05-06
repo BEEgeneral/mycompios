@@ -1,7 +1,7 @@
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { neon } from '@neondatabase/serverless'
+import { Pool } from 'pg'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -9,36 +9,30 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-// Lazy init
-let _sql: ReturnType<typeof neon> | null = null
-function getSql() {
-  if (!_sql) {
-    _sql = neon(process.env.DATABASE_URL!)
-  }
-  return _sql
-}
-
-// POST /api/auth/logout
 export async function POST(req: NextRequest) {
-  const sql = getSql()
-  const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-
-  if (req.method === 'OPTIONS') {
-    return new Response('', { status: 200, headers })
-  }
-
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers })
-  }
-
-  const token = authHeader.slice(7)
-
   try {
-    await sql`DELETE FROM sessions WHERE id = ${token}`
-    return NextResponse.json({ success: true }, { status: 200, headers })
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS })
+    }
+
+    const token = authHeader.slice(7)
+
+    const pool = new Pool({
+      host: process.env.NEON_HOST,
+      database: process.env.NEON_DB,
+      user: process.env.NEON_USER,
+      password: process.env.NEON_PASSWORD,
+      ssl: true,
+      max: 1,
+    })
+
+    await pool.query('DELETE FROM sessions WHERE id = $1', [token])
+    await pool.end()
+
+    return NextResponse.json({ success: true }, { headers: CORS_HEADERS })
+
   } catch (err: any) {
-    console.error('Logout error:', err)
-    return NextResponse.json({ error: 'Logout failed' }, { status: 500, headers })
+    return NextResponse.json({ error: err.message }, { status: 500, headers: CORS_HEADERS })
   }
 }
