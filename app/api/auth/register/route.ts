@@ -65,9 +65,9 @@ export async function POST(req: NextRequest) {
 
     const companyId = crypto.randomUUID()
     await pool.query(
-      `INSERT INTO companies (id, name, email, plan, trial_expires_at)
-       VALUES ($1, $2, $3, 'trial', NOW() + INTERVAL '3 days')`,
-      [companyId, company, emailLower]
+      `INSERT INTO companies (id, name, plan, trial_expires_at)
+       VALUES ($1, $2, 'trial', NOW() + INTERVAL '3 days')`,
+      [companyId, company]
     ).catch(e => { throw new Error('DB insert company error: ' + e.message) })
 
     const hash = Buffer.from(password + 'MYCOMPI_SALT_2026').toString('hex')
