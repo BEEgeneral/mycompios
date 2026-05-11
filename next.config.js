@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['pg'],
+  experimental: {
+    serverExternalPackages: ['pg'],
+  },
 }
 
 module.exports = nextConfig
