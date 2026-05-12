@@ -9,6 +9,18 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+// Build connection string from individual env vars (Vercel format)
+function getConnectionString() {
+  const host = process.env.NEON_HOST
+  const db = process.env.NEON_DB
+  const user = process.env.NEON_USER
+  const password = process.env.NEON_PASSWORD
+  if (!host || !db || !user || !password) {
+    throw new Error('Missing database environment variables')
+  }
+  return `postgresql://${user}:${password}@${host}/${db}?ssl=true`
+}
+
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get('content-type') || ''
@@ -32,7 +44,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const sql = neon(getConnectionString())
 
     const users = await sql`
       SELECT u.id, u.name, u.email, u.password_hash, u.company_id,

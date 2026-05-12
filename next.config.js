@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverExternalPackages: ['pg'],
-  },
+  // No serverExternalPackages needed - using @neondatabase/serverless instead of pg
 }
 
 module.exports = nextConfig
