@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+
 /**
  * Auth Login - Using connection string like test-neon does
  */

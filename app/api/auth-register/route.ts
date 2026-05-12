@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+
 /**
  * Auth Register - Main endpoint used by frontend
  * Uses @neondatabase/serverless for Vercel Edge compatibility
