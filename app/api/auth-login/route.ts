@@ -1,5 +1,5 @@
 /**
- * Auth Login - Debug version with error logging
+ * Auth Login - Using connection string like test-neon does
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
@@ -17,6 +17,14 @@ function hashPassword(password: string): string {
   return Buffer.from(password + SALT).toString('hex')
 }
 
+function getConnectionString() {
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL
+  }
+  // Fallback to individual vars (Vercel format)
+  return `postgresql://${process.env.NEON_USER}:${process.env.NEON_PASSWORD}@${process.env.NEON_HOST}/${process.env.NEON_DB}?ssl=true`
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json()
@@ -28,12 +36,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Log env vars (without secrets)
-    console.log('DATABASE_URL set:', !!process.env.DATABASE_URL)
-    console.log('NEON_HOST set:', !!process.env.NEON_HOST)
-
-    // Try to connect
-    const sql = neon(process.env.DATABASE_URL!)
+    const sql = neon(getConnectionString())
 
     const users = await sql`
       SELECT u.id, u.name, u.email, u.company_id, u.password_hash,
@@ -75,13 +78,9 @@ export async function POST(req: NextRequest) {
     }, { status: 200, headers: CORS_HEADERS })
 
   } catch (err: any) {
-    console.error('Login error details:', err)
+    console.error('Login error:', err.message)
     return NextResponse.json(
-      { 
-        error: err.message, 
-        code: 'SERVER_ERROR',
-        stack: err.stack?.split('\n').slice(0, 3)
-      },
+      { error: err.message, code: 'SERVER_ERROR' },
       { status: 500, headers: CORS_HEADERS }
     )
   }
