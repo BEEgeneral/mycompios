@@ -1,42 +1,28 @@
-// AUTH LOGIN - User login with email and password
+/**
+ * Auth Login - Main endpoint used by frontend
+ * Uses @neondatabase/serverless for Vercel Edge compatibility
+ */
+import { NextRequest, NextResponse } from 'next/server'
+import { neon } from '@neondatabase/serverless'
 
-import { NextResponse } from 'next/server'
-import { verifyLoginCredentials, createLoginSession, getLoginTrialStatus } from '../../lib/services/login-service'
-
-// Rate limiting
-const loginLimits = new Map()
-const LOGIN_MAX = 10
-const LOGIN_WINDOW = 3600000
-
-function checkLoginLimit(ip: string): number {
-  const now = Date.now()
-  const r = loginLimits.get(ip) || { count: 0, resetAt: now + LOGIN_WINDOW }
-  if (now > r.resetAt) { r.count = 0; r.resetAt = now + LOGIN_WINDOW }
-  r.count++
-  loginLimits.set(ip, r)
-  if (r.count > LOGIN_MAX) return Math.ceil((r.resetAt - now) / 1000)
-  return 0
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json'
 }
 
-export async function POST(req: Request) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json'
-  }
+const SALT = 'MYCOMPI_SALT_2026'
 
+// Simple hash for password verification
+function hashPassword(password: string): string {
+  const data = Buffer.from(password + SALT).toString('hex')
+  return data
+}
+
+export async function POST(req: NextRequest) {
   if (req.method === 'OPTIONS') {
-    return new NextResponse('', { status: 200, headers })
-  }
-
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-  const retrySec = checkLoginLimit(ip)
-  if (retrySec > 0) {
-    return NextResponse.json(
-      { error: 'Demasiados intentos', code: 'RATE_LIMITED', retryAfter: retrySec },
-      { status: 429, headers }
-    )
+    return new NextResponse('', { status: 200, headers: CORS_HEADERS })
   }
 
   try {
@@ -44,37 +30,64 @@ export async function POST(req: Request) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email y contraseña son requeridos', code: 'MISSING_CREDENTIALS' },
-        { status: 400, headers }
+        { error: 'Email y contraseña son requeridos' },
+        { status: 400, headers: CORS_HEADERS }
       )
     }
 
-    const user = await verifyLoginCredentials(email, password)
+    // Connect to database using DATABASE_URL env var
+    const sql = neon(process.env.DATABASE_URL!)
 
-    if (!user) {
+    // Find user by email
+    const users = await sql`
+      SELECT u.id, u.name, u.email, u.company_id, u.password_hash,
+             c.name as company_name, c.plan
+      FROM app_user u
+      JOIN companies c ON u.company_id = c.id
+      WHERE u.email = ${email.toLowerCase()}
+    `
+
+    if (!users.length) {
       return NextResponse.json(
-        { error: 'Credenciales inválidas', code: 'INVALID_CREDENTIALS' },
-        { status: 401, headers }
+        { error: 'Credenciales inválidas' },
+        { status: 401, headers: CORS_HEADERS }
       )
     }
 
-    const { token, expiresAt } = await createLoginSession(user.userId)
-    
-    const trialExpiresAt = await getLoginTrialStatus(user.company_id) || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    const user = users[0]
+
+    // Verify password
+    const hash = hashPassword(password)
+    if (user.password_hash !== hash) {
+      return NextResponse.json(
+        { error: 'Credenciales inválidas' },
+        { status: 401, headers: CORS_HEADERS }
+      )
+    }
+
+    // Generate session token
+    const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '') + '_' + user.id
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    // Create session
+    await sql`
+      INSERT INTO sessions (id, user_id, created_at, expires_at)
+      VALUES (${token}, ${user.id}, ${new Date().toISOString()}, ${expiresAt})
+    `
 
     const response = NextResponse.json({
       success: true,
       token,
-      demo: false,
       user: {
-        id: user.userId,
+        id: user.id,
         name: user.name,
         email: user.email,
         company: user.company_name
       },
-      trial_expires_at: trialExpiresAt
-    }, { status: 200, headers })
+      plan: user.plan
+    }, { status: 200, headers: CORS_HEADERS })
 
+    // Set cookie
     response.cookies.set('mc_token', token, {
       httpOnly: true,
       path: '/',
@@ -84,11 +97,11 @@ export async function POST(req: Request) {
 
     return response
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('Login error:', err)
     return NextResponse.json(
-      { error: 'Error al iniciar sesión', code: 'INTERNAL_ERROR' },
-      { status: 500, headers }
+      { error: 'Error al iniciar sesión' },
+      { status: 500, headers: CORS_HEADERS }
     )
   }
 }
