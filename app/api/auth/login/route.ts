@@ -1,7 +1,7 @@
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { Pool } from 'pg'
+import { neon } from '@neondatabase/serverless'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -9,26 +9,21 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-function parseBody(req: NextRequest): Promise<{email: string, password: string}> {
-  const contentType = req.headers.get('content-type') || ''
-  
-  if (contentType.includes('application/json')) {
-    return req.json()
-  }
-  
-  // URL-encoded or form-data
-  return req.text().then(text => {
-    const params = new URLSearchParams(text)
-    return {
-      email: params.get('email') || '',
-      password: params.get('password') || ''
-    }
-  })
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await parseBody(req)
+    const contentType = req.headers.get('content-type') || ''
+    let email: string, password: string
+    
+    if (contentType.includes('application/json')) {
+      const body = await req.json()
+      email = body.email || ''
+      password = body.password || ''
+    } else {
+      const text = await req.text()
+      const params = new URLSearchParams(text)
+      email = params.get('email') || ''
+      password = params.get('password') || ''
+    }
 
     if (!email || !password) {
       return NextResponse.json(
@@ -37,36 +32,24 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const pool = new Pool({
-      host: process.env.NEON_HOST,
-      database: process.env.NEON_DB,
-      user: process.env.NEON_USER,
-      password: process.env.NEON_PASSWORD,
-      ssl: true,
-      max: 1,
-    })
+    const sql = neon(process.env.DATABASE_URL!)
 
-    const result = await pool.query(
-      `SELECT u.id, u.name, u.email, u.password_hash, u.company_id,
-              c.name as company_name, c.plan, c.trial_expires_at
-       FROM app_user u
-       JOIN companies c ON u.company_id = c.id
-       WHERE u.email = $1`,
-      [email.toLowerCase()]
-    )
+    const users = await sql`
+      SELECT u.id, u.name, u.email, u.password_hash, u.company_id,
+             c.name as company_name, c.plan, c.trial_expires_at
+      FROM app_user u
+      JOIN companies c ON u.company_id = c.id
+      WHERE u.email = ${email.toLowerCase()}
+    `
 
-    await pool.end()
-
-    if (!result.rows.length) {
+    if (!users.length) {
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401, headers: CORS_HEADERS }
       )
     }
 
-    const user = result.rows[0]
-
-    // Simple hash (for testing - production should use bcrypt)
+    const user = users[0]
     const hash = Buffer.from(password + 'MYCOMPI_SALT_2026').toString('hex')
 
     if (user.password_hash !== hash) {
