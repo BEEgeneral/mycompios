@@ -28,7 +28,7 @@ export default function Login() {
     if (!form.email.includes('@')) { setError('Email inválido'); return }
     setLoading(true)
     try {
-      const res = await fetch('/api/auth-login', {
+      const res = await fetch('https://guuimyx3.functions.insforge.app/auth-login-direct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

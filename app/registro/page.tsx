@@ -28,7 +28,7 @@ export default function Registro() {
 
     setLoading(true)
     try {
-      const res = await fetch('/api/auth-register', {
+      const res = await fetch('https://guuimyx3.functions.insforge.app/auth-register-direct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -36,7 +36,6 @@ export default function Registro() {
           password: form.password,
           name: form.name,
           company: form.company,
-          website: form.website,
         }),
       })
       const data = await res.json()
