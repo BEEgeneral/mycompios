@@ -7,7 +7,7 @@
 import { Pool } from 'pg'
 import { randomUUID } from 'crypto'
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_TRtcXVky_54TGjwu7juDeY9cbQFCW2Ahj'
+const RESEND_API_KEY = process.env.RESEND_API_KEY || 'REACTIVATE_WHEN_NEEDED'
 const FROM_EMAIL = 'MyCompi <laura@mycompi.com>'
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.mycompi.com'
 

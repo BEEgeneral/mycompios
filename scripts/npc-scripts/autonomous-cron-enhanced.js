@@ -3,8 +3,8 @@
 
 const https = require("https")
 
-const LLM_KEY = "sk-cp-kewjUeaiHUlb-tvKgHb4JIOJt2-GrY6Uj9Y-hPFvOq3QyBsGAlbSQIw-eT7XERlLNrQ2l1-sy42pHSfGloIP46fp52OaX76Z8s6T5MkXMi0CObEeaa5JxFI"
-const RESEND_KEY = "re_TRtcXVky_54TGjwu7juDeY9cbQFCW2Ahj"
+const LLM_KEY = "${MINIMAX_API_KEY}"
+const RESEND_KEY = "${RESEND_API_KEY}"
 const DB_PROXY = "https://guuimyx3.functions.insforge.app/db-proxy"
 const FRONTEND_URL = "https://mycompi.com"
 const FROM_EMAIL = "MyCompi <daily@mycompi.com>"

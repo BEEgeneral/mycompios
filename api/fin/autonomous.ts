@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server'
 
 const OPENVIKING_URL = 'https://openviking-jggo.srv1583696.hstgr.cloud'
-const OPENVIKING_KEY = 'BnjbkRgOIn4MBywXDLaI6S0R43bnxQIO'
+const OPENVIKING_KEY = process.env.OPENVIKING_API_KEY || ''
 
 // In-memory state for fin agent
 declare global {

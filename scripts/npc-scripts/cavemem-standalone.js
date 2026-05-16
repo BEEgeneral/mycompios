@@ -2,7 +2,7 @@
 // Works without InsForge deployment issues
 
 const https = require("https")
-const LLM_KEY = "sk-cp-kewjUeaiHUlb-tvKgHb4JIOJt2-GrY6Uj9Y-hPFvOq3QyBsGAlbSQIw-eT7XERlLNrQ2l1-sy42pHSfGloIP46fp52OaX76Z8s6T5MkXMi0CObEeaa5JxFI"
+const LLM_KEY = "${MINIMAX_API_KEY}"
 const COMPANY_ID = "32b43fde-d06a-425c-96b1-6157ccd7b33c"
 
 // Caveman compression rules

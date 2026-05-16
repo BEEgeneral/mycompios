@@ -5,7 +5,7 @@ const COMPANY_ID = "32b43fde-d06a-425c-96b1-6157ccd7b33c"
 const NPC_CHAT_URL = "https://guuimyx3.functions.insforge.app/npc-chat"
 const EVALUATOR_URL = "https://guuimyx3.functions.insforge.app/task-evaluator"
 const LLM_URL = "api.minimax.io"
-const LLM_KEY = "sk-cp-kewjUeaiHUlb-tvKgHb4JIOJt2-GrY6Uj9Y-hPFvOq3QyBsGAlbSQIw-eT7XERlLNrQ2l1-sy42pHSfGloIP46fp52OaX76Z8s6T5MkXMi0CObEeaa5JxFI"
+const LLM_KEY = "${MINIMAX_API_KEY}"
 
 // NPC profiles (cached locally for direct use)
 const NPC_PROFILES = {

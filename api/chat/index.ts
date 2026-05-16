@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { query } from '../_lib/db'
 
 const OPENVIKING_URL = 'https://openviking-jggo.srv1583696.hstgr.cloud'
-const OPENVIKING_KEY = 'BnjbkRgOIn4MBywXDLaI6S0R43bnxQIO'
+const OPENVIKING_KEY = process.env.OPENVIKING_API_KEY || ''
 
 const LLM_CONFIG: Record<string, { url: string; model: string }> = {
   minimax: { url: 'https://api.minimax.io/v1/text/chatcompletion_v2', model: 'MiniMax-M2.7' },
@@ -14,9 +14,9 @@ const LLM_CONFIG: Record<string, { url: string; model: string }> = {
 }
 
 const LLM_KEYS: Record<string, string> = {
-  minimax: 'sk-cp-kewjUeaiHUlb-tvKgHb4JIOJt2-GrY6Uj9Y-hPFvOq3QyBsGAlbSQIw-eT7XERlLNrQ2l1-sy42pHSfGloIP46fp52OaX76Z8s6T5MkXMi0CObEeaa5JxFI',
-  openrouter: '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',
-  openai: 'sk-proj-REDACTED'
+  minimax: process.env.MINIMAX_API_KEY || '',
+  openrouter: process.env.OPENROUTER_API_KEY || '',
+  openai: process.env.OPENAI_API_KEY || ''
 }
 
 export async function POST(req: Request) {

@@ -5,7 +5,7 @@ const pool = new Pool({
   port: 5432,
   database: process.env.NEON_DB || 'neondb',
   user: process.env.NEON_USER || 'neondb_owner',
-  password: process.env.NEON_PASSWORD || 'npg_WtabOh4u2KiL',
+  password: process.env.NEON_PASSWORD || '',
   ssl: { rejectUnauthorized: false }
 })
 
