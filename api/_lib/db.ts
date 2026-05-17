@@ -6,7 +6,8 @@ const pool = new Pool({
   database: process.env.NEON_DB || 'neondb',
   user: process.env.NEON_USER || 'neondb_owner',
   password: process.env.NEON_PASSWORD || '',
-  ssl: { rejectUnauthorized: false }
+  // SSL: true for production (Neon), false for local dev
+  ssl: process.env.NODE_ENV === 'production' ? true : false
 })
 
 export async function query(text: string, params: any[]) {

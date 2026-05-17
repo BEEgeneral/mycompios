@@ -1,7 +1,8 @@
-// BUSINESS CORE v7 - In-memory store with OpenViking backup
+// BUSINESS CORE v8 - With input validation + proper error handling
 // Migrated from InsForge (Deno) to Vercel (Node.js)
 
 import { NextResponse } from 'next/server'
+import { validate, schemas } from '../_lib/validation'
 
 const OPENVIKING_URL = 'https://openviking-jggo.srv1583696.hstgr.cloud'
 const OPENVIKING_KEY = process.env.OPENVIKING_API_KEY || ''
@@ -77,10 +78,17 @@ export async function POST(req: Request) {
 
   try {
     let body: Record<string, any> = {}
-    try { body = await req.json() } catch { /* empty */ }
+    try { body = await req.json() } catch { 
+      return NextResponse.json({ error: 'Invalid JSON body', code: 'INVALID_JSON' }, { status: 400, headers })
+    }
+    
     const { action, company_id, data } = body
 
-    if (!company_id) return NextResponse.json({ error: 'company_id required' }, { status: 400, headers })
+    // Validate input
+    const validation = validate({ action, company_id }, schemas.businessAction)
+    if (!validation.valid) {
+      return NextResponse.json({ error: 'Validation failed', code: 'VALIDATION_ERROR', details: validation.errors }, { status: 400, headers })
+    }
 
     const store = getStore(company_id)
 
@@ -100,7 +108,7 @@ export async function POST(req: Request) {
           created_at: new Date().toISOString()
         }
         store.leads.push(lead)
-        ovStore('lead', company_id, lead).catch(() => {})
+        ovStore('lead', company_id, lead).catch(err => console.error('ovStore lead failed:', err.message))
         return NextResponse.json({ success: true, agent, score, lead }, { headers })
       }
 
@@ -125,7 +133,7 @@ export async function POST(req: Request) {
           created_at: new Date().toISOString()
         }
         store.invoices.push(invoice)
-        ovStore('invoice', company_id, invoice).catch(() => {})
+        ovStore('invoice', company_id, invoice).catch(err => console.error('ovStore invoice failed:', err.message))
         return NextResponse.json({ success: true, invoiceNumber, total, dueDate }, { headers })
       }
 
@@ -141,7 +149,7 @@ export async function POST(req: Request) {
           created_at: new Date().toISOString()
         }
         store.opportunities.push(opportunity)
-        ovStore('opportunity', company_id, opportunity).catch(() => {})
+        ovStore('opportunity', company_id, opportunity).catch(err => console.error('ovStore opportunity failed:', err.message))
         return NextResponse.json({ success: true, opportunity }, { headers })
       }
 
@@ -162,7 +170,7 @@ export async function POST(req: Request) {
           inv.paid_amount = amount
           inv.paid_at = payment.paid_at
         }
-        ovStore('payment', company_id, payment).catch(() => {})
+        ovStore('payment', company_id, payment).catch(err => console.error('ovStore payment failed:', err.message))
         return NextResponse.json({ success: true, payment }, { headers })
       }
 
