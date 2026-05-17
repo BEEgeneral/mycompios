@@ -2,6 +2,7 @@
 // Migrated from InsForge (Deno) to Vercel (Node.js)
 
 import { NextResponse } from 'next/server'
+import { query } from '../_lib/db'
 
 const OPENVIKING_URL = 'https://openviking-jggo.srv1583696.hstgr.cloud'
 const OPENVIKING_KEY = process.env.OPENVIKING_API_KEY || ''
@@ -146,7 +147,20 @@ async function storeAgentData(state: L6State, dataType: string, content: any, me
   }
   state.memory.push(memoryEntry)
   state.learning.iteration++
-  return { success: true, stored: !openvikingResult.error, openvikingSessionId: openvikingResult.sessionId, memoryIndex: state.memory.length - 1, dbResult: null }
+
+  // Persist to DB
+  try {
+    const companyUuid = state.companyId === 'default' ? null : state.companyId
+    await query(
+      `INSERT INTO memory_entries (company_id, entry_type, title, content, source, agent_id, importance, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [companyUuid, dataType, metadata?.title || dataType, contentStr, 'autonomous-v6', 'brain-001', metadata?.importance || 5, now]
+    )
+  } catch (e) {
+    console.error('DB persist failed:', e.message)
+  }
+
+  return { success: true, stored: !openvikingResult.error, openvikingSessionId: openvikingResult.sessionId, memoryIndex: state.memory.length - 1, dbResult: 'saved' }
 }
 
 export async function GET(req: Request) {
@@ -212,6 +226,19 @@ export async function POST(req: Request) {
         const learningEntry = { type: 'learning', content: instruction || content, timestamp: new Date().toISOString(), validated: false, score: result.parsed.confidence || 0.7, data: result.parsed }
         state.memory.push(learningEntry)
         state.learning.iteration++
+
+        // Persist to DB
+        try {
+          const companyUuid = state.companyId === 'default' ? null : state.companyId
+          await query(
+            `INSERT INTO memory_entries (company_id, entry_type, title, content, source, agent_id, importance, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [companyUuid, 'learning', `Learning-${state.learning.iteration}`, instruction || content, 'autonomous-v6', 'brain-001', Math.round((result.parsed.confidence || 0.7) * 10), new Date().toISOString()]
+          )
+        } catch (e) {
+          console.error('learn DB persist failed:', e.message)
+        }
+
         return NextResponse.json({ success: true, action: 'learn', agent: 'brain', learning: { entitiesFound: result.parsed.entities?.length || 0, insightsCount: result.parsed.keyInsights?.length || 0, confidence: result.parsed.confidence }, stored: true, iteration: state.learning.iteration }, { headers })
       }
 
