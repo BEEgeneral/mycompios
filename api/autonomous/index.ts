@@ -183,22 +183,24 @@ export async function POST(req: Request) {
       }
 
       case 'chat': {
+        const message_text = message || instruction || ''
+        if (!message_text) return NextResponse.json({ error: 'Missing message or instruction' }, { status: 400, headers })
         const agent = state.agents.find(a => a.role === 'executive') || state.agents[0]
         agent.status = 'working'
         let result: any = { type: 'chat', agent: agent.name }
-        if (instruction.includes('busca') || instruction.includes('search')) {
-          const searchResult = await vikingSearch(instruction.replace(/busca|search/gi, '').trim())
-          result = { type: 'search', agent: agent.name, query: instruction, results: searchResult?.result || [], found: !searchResult.error }
-        } else if (instruction.includes('almacena') || instruction.includes('guarda')) {
-          const storeResult = await vikingStore(instruction)
+        if (message_text.includes('busca') || message_text.includes('search')) {
+          const searchResult = await vikingSearch(message_text.replace(/busca|search/gi, '').trim())
+          result = { type: 'search', agent: agent.name, query: message_text, results: searchResult?.result || [], found: !searchResult.error }
+        } else if (message_text.includes('almacena') || message_text.includes('guarda')) {
+          const storeResult = await vikingStore(message_text)
           result = { type: 'store', agent: agent.name, stored: !storeResult.error, sessionId: storeResult.sessionId || null }
         } else {
-          const llmResult = await multiLLMStructured([{ role: 'user', content: instruction }], `You are Pelayo, MyCompi executive assistant. Keep responses concise. Offer next steps. End with a question.`, 500, ['response', 'nextSteps'])
+          const llmResult = await multiLLMStructured([{ role: 'user', content: message_text }], `You are Pelayo, MyCompi executive assistant. Keep responses concise. Offer next steps. End with a question.`, 500, ['response', 'nextSteps'])
           if (llmResult?.parsed) result = { type: 'chat', agent: agent.name, ...llmResult.parsed, model: llmResult.model, provider: llmResult.provider }
           else result = { type: 'chat', agent: agent.name, response: llmResult?.content || 'No response', model: llmResult?.model, provider: llmResult?.provider }
         }
         agent.status = 'idle'
-        state.memory.push({ type: 'interaction', content: instruction.substring(0, 100), timestamp: new Date().toISOString(), validated: false })
+        state.memory.push({ type: 'interaction', content: message_text.substring(0, 100), timestamp: new Date().toISOString(), validated: false })
         state.learning.iteration++
         if (state.learning.iteration % 20 === 0) await consolidateMemory(state)
         return NextResponse.json({ success: true, action: 'chat', ...result, memorySize: state.memory.length, iteration: state.learning.iteration }, { headers })
